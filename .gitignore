@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual envs
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# Env files
+.env
+
+# UV (optional but safe)
+.uv/
+
+# Logs
+*.log
