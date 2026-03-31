@@ -1,0 +1,34 @@
+# OpenEnv Manifest for NegotiationEnv
+name: negotiation_env
+version: "1.0.0"
+description: |
+  A Multi-Issue Bilateral Negotiation RL Environment for LLM Post-Training.
+  
+  The agent plays one party in a negotiation against a parameterized counterpart.
+  Features 5 negotiation issues, 5 opponent strategies, and 4 GRPO-compatible
+  reward signals for rich gradient information.
+
+# Environment metadata
+env_type: turn-based
+domain: negotiation
+difficulty: medium
+
+# Server configuration
+server:
+  port: 8000
+  workers: 4
+  max_concurrent_sessions: 100
+
+# Episode configuration
+episode:
+  max_rounds: 10
+  timeout_seconds: 30
+
+# Tags for discovery
+tags:
+  - negotiation
+  - multi-issue
+  - imperfect-information
+  - bilateral
+  - grpo-compatible
+  - llm-training
