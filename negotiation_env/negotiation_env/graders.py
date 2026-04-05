@@ -102,10 +102,8 @@ def grade_hard_hardliner(state: Dict[str, Any]) -> float:
     deal_reached = grader.get("deal_reached", False)
 
     if not deal_reached:
-        # Hard task: partial credit for getting close (high concession from counterpart)
-        total_counterpart_concession = grader.get("total_counterpart_concession", 0.0)
-        # If counterpart conceded a lot but still no deal, give tiny credit
-        return min(0.15, float(total_counterpart_concession) * 0.3)
+        # Hard task: small flat partial credit for attempting (grader may be None on no-deal)
+        return 0.05
 
     agent_utility = grader.get("agent_utility", 0.0)
     negotiation_efficiency = grader.get("negotiation_efficiency", 1.0)

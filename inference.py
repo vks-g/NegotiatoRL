@@ -74,7 +74,7 @@ API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 BENCHMARK = "negotiation_env"
-MAX_STEPS = 10
+# MAX_STEPS removed — loop uses task_config["max_rounds"] per task (see ALL_TASKS)
 TEMPERATURE = 0.7
 MAX_TOKENS = 512
 
@@ -184,7 +184,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     """Log episode end."""
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}",
+        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}",
         flush=True,
     )
 
