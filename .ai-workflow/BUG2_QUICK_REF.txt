@@ -1,0 +1,76 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                    BUG #2 FIX - QUICK REFERENCE                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+✅ STATUS: FIXED AND VALIDATED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 DOCKER BUILD COMMAND (from repo root)
+
+  docker build -t negotiation-env:latest -f negotiation_env/server/Dockerfile .
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 DOCKER RUN COMMAND
+
+  docker run -d -p 8000:8000 negotiation-env:latest
+
+  # With custom configuration:
+  docker run -d -p 8000:8000 \
+    -e WORKERS=4 \
+    -e MAX_CONCURRENT_ENVS=100 \
+    negotiation-env:latest
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 UV COMMANDS (alternative to Docker)
+
+  cd negotiation_env
+  uv sync
+  uv run server
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ VALIDATION
+
+  curl http://localhost:8000/health
+  # Expected: {"status": "healthy"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 WHAT WAS FIXED
+
+  1. ✅ Quoted pip version specifiers (openenv-core>=0.1.0 → "openenv-core>=0.1.0")
+  2. ✅ Fixed module import path (server.app:app → negotiation_env.server.app:app)
+  3. ✅ Corrected build context (build from repo root, not negotiation_env/)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION
+
+  • Full Guide: .ai-workflow/DOCKER_DEPLOYMENT.md
+  • Fix Log: .ai-workflow/contracts/bug2-dockerfile-fix-log.md
+  • Summary: .ai-workflow/BUG2_FIX_SUMMARY.md
+  • Validation: python3 .ai-workflow/validate_dockerfile.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 VALIDATION RESULTS
+
+  ✅ All pip version specifiers quoted (5 found)
+  ✅ Correct uvicorn module path: negotiation_env.server.app
+  ✅ Correct build context paths in COPY commands
+  ✅ PYTHONPATH set correctly
+  ✅ Health check configured
+  ✅ All environment variables defined
+  ✅ All project files present
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  IMPORTANT: Build from repository root, NOT from negotiation_env/
+
+  ✅ CORRECT: cd /path/to/NegotiatoRL && docker build -f negotiation_env/server/Dockerfile .
+  ❌ WRONG:   cd negotiation_env && docker build -f server/Dockerfile .
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

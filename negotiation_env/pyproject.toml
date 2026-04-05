@@ -32,27 +32,25 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
+    "httpx>=0.24.0",
 ]
 
 [project.scripts]
-server = "uvicorn:main"
+# CLI entry points - use `uv run server` or `uv run tests`
+server = "negotiation_env.cli:run_server"
+test = "negotiation_env.cli:run_tests"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build.targets.wheel]
-packages = ["."]
-
-[tool.uv]
-dev-dependencies = [
+# PEP 735 dependency groups (modern uv syntax)
+[dependency-groups]
+dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
 ]
-
-[tool.uv.scripts]
-server = "uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload"
-test = "pytest test_env.py -v"
 
 [tool.mypy]
 python_version = "3.11"

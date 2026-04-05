@@ -12,7 +12,7 @@ All randomness is seeded for reproducibility.
 
 import random
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from openenv.core.env_server import Environment
 
@@ -177,13 +177,15 @@ class NegotiationEnvironment(Environment):
         # Prepare issues dict for utility computation
         self._issues_dict = {name: spec.model_dump() for name, spec in DEFAULT_ISSUES.items()}
 
-        # Estimate Pareto frontier
+        # Estimate Pareto frontier (use seed for reproducibility)
+        pareto_seed = seed if seed is not None else 42
         self._pareto_frontier_utility = compute_pareto_frontier_utility(
             agent_weights,
             counterpart_weights,
             agent_role,
             self._issues_dict,
             num_samples=self.DEFAULT_PARETO_SAMPLES,
+            seed=pareto_seed,
         )
         self._previous_joint_utility = 0.0
 
@@ -234,7 +236,7 @@ class NegotiationEnvironment(Environment):
 
     def step(
         self,
-        action: NegotiationAction,
+        action: Union[NegotiationAction, Dict[str, Any]],
         timeout_s: Optional[float] = None,
         **kwargs: Any,
     ) -> NegotiationObservation:
@@ -242,13 +244,28 @@ class NegotiationEnvironment(Environment):
         Process agent's action and counterpart's response.
 
         Args:
-            action: Agent's action (offer, accept, or reject)
+            action: Agent's action (offer, accept, or reject) - can be NegotiationAction object or dict
             timeout_s: Optional timeout (not used in this implementation)
             **kwargs: Additional options
 
         Returns:
             NegotiationObservation with updated state and reward
+
+        Raises:
+            RuntimeError: If reset() has not been called before step()
         """
+        # Guard: Ensure environment has been reset before stepping
+        if self._strategy is None:
+            raise RuntimeError(
+                "Environment not initialized. Call reset() before step(). "
+                "This error typically occurs when using HTTP endpoints without "
+                "proper session management - ensure /reset is called first."
+            )
+
+        # Convert dict to NegotiationAction if needed (OpenEnv HTTP sends dicts)
+        if isinstance(action, dict):
+            action = NegotiationAction(**action)
+
         self._state.step_count += 1
         round_number = self._state.step_count
 

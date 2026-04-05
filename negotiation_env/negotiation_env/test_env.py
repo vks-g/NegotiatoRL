@@ -757,6 +757,76 @@ class TestObservationStructure:
 
 
 # =============================================================================
+# Test: HTTP Integration (requires running server)
+# =============================================================================
+
+
+def _server_is_running() -> bool:
+    """Check if the server is running at localhost:8000."""
+    try:
+        import httpx
+
+        response = httpx.get("http://localhost:8000/health", timeout=2.0)
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
+class TestHTTPIntegration:
+    """
+    Integration tests for HTTP endpoints.
+
+    These tests require a running server. Skip if server is not available.
+    Run with: pytest test_env.py -v -k TestHTTPIntegration
+
+    Start server first: uv run server
+    """
+
+    SERVER_URL = "http://localhost:8000"
+
+    @pytest.fixture
+    def http_client(self):
+        """Create HTTP client for testing."""
+        import httpx
+
+        return httpx.Client(base_url=self.SERVER_URL, timeout=30.0)
+
+    @pytest.mark.skipif(not _server_is_running(), reason="Server not running at localhost:8000")
+    def test_health_endpoint(self, http_client):
+        """Test /health endpoint returns 200."""
+        response = http_client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "status" in data
+
+    @pytest.mark.skipif(not _server_is_running(), reason="Server not running at localhost:8000")
+    def test_reset_endpoint(self, http_client):
+        """Test /reset endpoint creates new episode."""
+        response = http_client.post(
+            "/reset",
+            json={
+                "seed": 42,
+                "strategy_name": "conceder",
+                "max_rounds": 10,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "observation" in data or "round_number" in data
+
+    @pytest.mark.skipif(not _server_is_running(), reason="Server not running at localhost:8000")
+    def test_state_endpoint(self, http_client):
+        """Test /state endpoint returns full state."""
+        # Reset first
+        http_client.post("/reset", json={"seed": 42})
+
+        response = http_client.get("/state")
+        assert response.status_code == 200
+        data = response.json()
+        assert "episode_id" in data or "step_count" in data
+
+
+# =============================================================================
 # Run Tests
 # =============================================================================
 

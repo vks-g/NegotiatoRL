@@ -24,6 +24,53 @@ episode:
   max_rounds: 10
   timeout_seconds: 30
 
+# Task definitions (3 tasks with graders, easy → medium → hard)
+tasks:
+  - name: easy_conceder
+    description: |
+      Negotiate against a Conceder opponent who rapidly moves toward the midpoint
+      and accepts offers at or above their BATNA. Tests basic negotiation skills
+      and ability to recognize good deals.
+    difficulty: easy
+    grader:
+      score_range: [0.0, 1.0]
+      success_threshold: 0.5
+      deterministic: true
+    reset_params:
+      strategy_name: conceder
+      max_rounds: 10
+      seed: 42
+
+  - name: medium_tft
+    description: |
+      Negotiate against a Tit-for-Tat opponent who mirrors your concession rate.
+      Tests strategic reciprocity - agent must learn to make measured concessions
+      to induce cooperation from the counterpart.
+    difficulty: medium
+    grader:
+      score_range: [0.0, 1.0]
+      success_threshold: 0.5
+      deterministic: true
+    reset_params:
+      strategy_name: tit_for_tat
+      max_rounds: 10
+      seed: 42
+
+  - name: hard_hardliner
+    description: |
+      Negotiate against a Hardliner opponent who barely concedes and demands
+      near-aspiration utility. Tests patience, persistence, and ability to
+      extract concessions from stubborn opponents under time pressure.
+    difficulty: hard
+    grader:
+      score_range: [0.0, 1.0]
+      success_threshold: 0.4
+      deterministic: true
+    reset_params:
+      strategy_name: hardliner
+      max_rounds: 10
+      seed: 42
+
 # Tags for discovery
 tags:
   - negotiation

@@ -281,6 +281,7 @@ def compute_pareto_frontier_utility(
     agent_role: str,
     issue_specs: Dict[str, dict],
     num_samples: int = 100,
+    seed: int = 42,
 ) -> float:
     """
     Estimate the Pareto frontier's maximum joint utility through sampling.
@@ -291,6 +292,7 @@ def compute_pareto_frontier_utility(
         agent_role: 'buyer' or 'seller'
         issue_specs: Issue specifications
         num_samples: Number of random offers to sample
+        seed: Random seed for reproducibility (default: 42)
 
     Returns:
         Estimated maximum achievable joint utility [0.0, 2.0]
@@ -298,15 +300,19 @@ def compute_pareto_frontier_utility(
     Note:
         This is an approximation. True Pareto computation would require
         multi-objective optimization. Sampling is sufficient for reward shaping.
+        Uses a local seeded RNG for reproducibility - does not affect global state.
     """
     import random
+
+    # Use a local seeded RNG for reproducibility (does not affect global state)
+    rng = random.Random(seed)
 
     max_joint = 0.0
     issue_names = list(agent_weights.keys())
 
     for _ in range(num_samples):
-        # Generate random offer
-        offer = {name: random.random() for name in issue_names}
+        # Generate random offer using local seeded RNG
+        offer = {name: rng.random() for name in issue_names}
 
         joint = compute_joint_utility(
             offer, agent_weights, counterpart_weights, agent_role, issue_specs

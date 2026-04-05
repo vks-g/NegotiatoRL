@@ -23,7 +23,7 @@ NegotiationEnv simulates realistic negotiations between an LLM agent and a param
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/negotiation-env
+git clone https://huggingface.co/spaces/YOUR_USERNAME/negotiation-env
 cd negotiation-env
 
 # Install dependencies
@@ -331,6 +331,33 @@ negotiation_env/
 | `max_rounds` | int | 10 | Deadline rounds |
 | `strategy_name` | str | random | Force specific strategy |
 | `agent_role` | str | random | Force "buyer" or "seller" |
+
+## Tasks and Baseline Scores
+
+The environment defines 3 tasks with increasing difficulty:
+
+| Task | Strategy | Difficulty | Baseline Score | Description |
+|------|----------|------------|----------------|-------------|
+| `easy_conceder` | Conceder | Easy | ~0.65 | Opponent rapidly moves to midpoint, accepts at BATNA |
+| `medium_tft` | Tit-for-Tat | Medium | ~0.55 | Opponent mirrors your concession rate |
+| `hard_hardliner` | Hardliner | Hard | ~0.40 | Opponent barely concedes, demands near-aspiration |
+
+**Baseline model**: Qwen/Qwen2.5-72B-Instruct with default prompting
+
+**Evaluation**: Scores are deterministic when using the same seed (default: 42). Graders produce values in [0.0, 1.0].
+
+### Running the Baseline
+
+```bash
+# Set environment variables
+export API_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export HF_TOKEN="your-token-here"
+export IMAGE_NAME="negotiation-env:latest"
+
+# Run inference on all tasks
+python inference.py
+```
 
 ## License
 
