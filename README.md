@@ -270,13 +270,13 @@ The fastest path from local code to a live endpoint:
 cd negotiation_env
 
 # Push to HF Spaces (you'll need write access to your HF account)
-openenv push --repo-id YOUR_HF_USERNAME/negotiation-env
+openenv push --repo-id your-username/negotiation-env
 ```
 
 Your environment will be available at:
-- **API Endpoint**: `https://YOUR_HF_USERNAME-negotiation-env.hf.space`
-- **API Docs**: `https://YOUR_HF_USERNAME-negotiation-env.hf.space/docs`
-- **Health Check**: `https://YOUR_HF_USERNAME-negotiation-env.hf.space/health`
+- **API Endpoint**: `https://your-username-negotiation-env.hf.space`
+- **API Docs**: `https://your-username-negotiation-env.hf.space/docs`
+- **Health Check**: `https://your-username-negotiation-env.hf.space/health`
 
 Configure via Space Settings → Variables:
 - `MODEL_NAME` = your LLM identifier
@@ -305,8 +305,8 @@ curl http://localhost:8000/health
 Once deployed to HF Spaces, you can pull the image:
 
 ```bash
-docker pull registry.hf.space/YOUR_HF_USERNAME/negotiation-env:latest
-docker run -d -p 8000:8000 registry.hf.space/YOUR_HF_USERNAME/negotiation-env:latest
+docker pull registry.hf.space/your-username/negotiation-env:latest
+docker run -d -p 8000:8000 registry.hf.space/your-username/negotiation-env:latest
 ```
 
 ## Integration with OpenEnv + TRL
@@ -320,7 +320,7 @@ from negotiation_env import NegotiationEnv, NegotiationAction
 # Custom rollout function
 def rollout_func(trainer, prompts):
     """Run negotiation episodes and collect trajectories."""
-    with NegotiationEnv(base_url="https://YOUR_HF_USERNAME-negotiation-env.hf.space").sync() as env:
+    with NegotiationEnv(base_url="https://your-username-negotiation-env.hf.space").sync() as env:
         results = []
         
         for i, prompt in enumerate(prompts):

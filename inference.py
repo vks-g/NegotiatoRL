@@ -102,7 +102,7 @@ ALL_TASKS = [
         "name": "hard_hardliner",
         "strategy_name": "hardliner",
         "seed": 42,
-        "max_rounds": 10,
+        "max_rounds": 15,
         "description": "Hard: Hardliner opponent who barely concedes",
     },
 ]
@@ -359,7 +359,7 @@ async def run_task(
             max_rounds=max_rounds,
         )
 
-        for step in range(1, MAX_STEPS + 1):
+        for step in range(1, task_config["max_rounds"] + 1):
             if result.done:
                 break
 
