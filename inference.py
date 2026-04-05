@@ -41,8 +41,27 @@ STDOUT FORMAT
 
 import asyncio
 import os
+import sys
 import textwrap
 from typing import Dict, List, Optional, Any
+
+# ---------------------------------------------------------------------------
+# PATH FIX: Add the outer negotiation_env/ directory to sys.path so that the
+# inner negotiation_env Python package (negotiation_env/negotiation_env/) is
+# importable as `import negotiation_env`.
+#
+# Directory structure:
+#   repo_root/                          ← inference.py lives here
+#   repo_root/negotiation_env/          ← outer folder (no __init__.py)
+#   repo_root/negotiation_env/negotiation_env/   ← Python package (__init__.py here)
+#
+# By inserting repo_root/negotiation_env into sys.path[0], Python resolves
+# `import negotiation_env` to repo_root/negotiation_env/negotiation_env/.
+# ---------------------------------------------------------------------------
+_REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+_PKG_DIR = os.path.join(_REPO_ROOT, "negotiation_env")
+if _PKG_DIR not in sys.path:
+    sys.path.insert(0, _PKG_DIR)
 
 from openai import OpenAI
 
@@ -59,8 +78,12 @@ MAX_STEPS = 10
 TEMPERATURE = 0.7
 MAX_TOKENS = 512
 
-# Task configurations matching openenv.yaml
-TASKS = [
+# ---------------------------------------------------------------------------
+# Task configurations — must match tasks defined in openenv.yaml
+# ---------------------------------------------------------------------------
+
+# All available tasks (used when running locally without NEGOTIATION_TASK set)
+ALL_TASKS = [
     {
         "name": "easy_conceder",
         "strategy_name": "conceder",
@@ -83,6 +106,29 @@ TASKS = [
         "description": "Hard: Hardliner opponent who barely concedes",
     },
 ]
+
+# Map task names to their config for fast lookup
+TASK_MAP = {t["name"]: t for t in ALL_TASKS}
+
+# The hackathon evaluator sets NEGOTIATION_TASK to run a specific task.
+# If not set, run all tasks (useful for local testing).
+TASK_NAME_ENV = os.getenv("NEGOTIATION_TASK") or os.getenv("MY_ENV_V4_TASK")
+
+# Resolve which tasks to run in this execution
+if TASK_NAME_ENV:
+    if TASK_NAME_ENV not in TASK_MAP:
+        print(
+            f"[DEBUG] Unknown task '{TASK_NAME_ENV}'. "
+            f"Available: {list(TASK_MAP.keys())}. Defaulting to easy_conceder.",
+            flush=True,
+        )
+        TASKS = [TASK_MAP["easy_conceder"]]
+    else:
+        # Single task mode — exactly what the evaluator expects
+        TASKS = [TASK_MAP[TASK_NAME_ENV]]
+else:
+    # No task specified — run all (local testing mode)
+    TASKS = ALL_TASKS
 
 # System prompt for LLM negotiation
 SYSTEM_PROMPT = textwrap.dedent(
@@ -370,32 +416,45 @@ async def run_task(
 
 
 async def main() -> None:
-    """Run all tasks and report scores."""
+    """
+    Run task(s) and report scores.
+
+    In single-task mode (NEGOTIATION_TASK env var set): runs exactly one task,
+    emitting one [START]...[END] block. This is the evaluator's expected pattern.
+
+    In multi-task mode (no env var): runs all 3 tasks sequentially for local testing.
+    """
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
     total_score = 0.0
+    single_task_mode = TASK_NAME_ENV is not None
 
     for task_config in TASKS:
-        print(f"\n{'=' * 60}", flush=True)
-        print(f"Running task: {task_config['name']}", flush=True)
-        print(f"Description: {task_config['description']}", flush=True)
-        print(f"{'=' * 60}\n", flush=True)
+        if not single_task_mode:
+            # Only print separators in multi-task (local testing) mode
+            print(f"\n{'=' * 60}", flush=True)
+            print(f"Running task: {task_config['name']}", flush=True)
+            print(f"Description: {task_config['description']}", flush=True)
+            print(f"{'=' * 60}\n", flush=True)
 
         score = await run_task(client, task_config)
         total_score += score
 
-        print(
-            f"\nTask {task_config['name']} completed with score: {score:.2f}\n",
-            flush=True,
-        )
+        if not single_task_mode:
+            print(
+                f"\nTask {task_config['name']} completed with score: {score:.2f}\n",
+                flush=True,
+            )
 
-    average_score = total_score / len(TASKS) if TASKS else 0.0
-    print(f"\n{'=' * 60}", flush=True)
-    print(f"FINAL RESULTS", flush=True)
-    print(f"{'=' * 60}", flush=True)
-    print(f"Total tasks: {len(TASKS)}", flush=True)
-    print(f"Total score: {total_score:.2f}", flush=True)
-    print(f"Average score: {average_score:.2f}", flush=True)
+    if not single_task_mode:
+        # Summary only shown in multi-task local testing mode
+        average_score = total_score / len(TASKS) if TASKS else 0.0
+        print(f"\n{'=' * 60}", flush=True)
+        print(f"FINAL RESULTS", flush=True)
+        print(f"{'=' * 60}", flush=True)
+        print(f"Total tasks: {len(TASKS)}", flush=True)
+        print(f"Total score: {total_score:.2f}", flush=True)
+        print(f"Average score: {average_score:.2f}", flush=True)
 
 
 if __name__ == "__main__":

@@ -25,3 +25,12 @@ __all__ = [
 ]
 
 __version__ = "1.0.0"
+
+# Grader functions (imported for openenv.yaml fn references)
+from .graders import grade_easy_conceder, grade_medium_tft, grade_hard_hardliner
+
+__all__ += [
+    "grade_easy_conceder",
+    "grade_medium_tft",
+    "grade_hard_hardliner",
+]

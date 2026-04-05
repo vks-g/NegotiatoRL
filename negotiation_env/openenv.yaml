@@ -32,7 +32,9 @@ tasks:
       and accepts offers at or above their BATNA. Tests basic negotiation skills
       and ability to recognize good deals.
     difficulty: easy
+    max_steps: 10
     grader:
+      fn: negotiation_env.graders:grade_easy_conceder
       score_range: [0.0, 1.0]
       success_threshold: 0.5
       deterministic: true
@@ -47,7 +49,9 @@ tasks:
       Tests strategic reciprocity - agent must learn to make measured concessions
       to induce cooperation from the counterpart.
     difficulty: medium
+    max_steps: 10
     grader:
+      fn: negotiation_env.graders:grade_medium_tft
       score_range: [0.0, 1.0]
       success_threshold: 0.5
       deterministic: true
@@ -62,13 +66,15 @@ tasks:
       near-aspiration utility. Tests patience, persistence, and ability to
       extract concessions from stubborn opponents under time pressure.
     difficulty: hard
+    max_steps: 15
     grader:
+      fn: negotiation_env.graders:grade_hard_hardliner
       score_range: [0.0, 1.0]
       success_threshold: 0.4
       deterministic: true
     reset_params:
       strategy_name: hardliner
-      max_rounds: 10
+      max_rounds: 15
       seed: 42
 
 # Tags for discovery

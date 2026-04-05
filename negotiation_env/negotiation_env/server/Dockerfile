@@ -4,7 +4,10 @@
 # ============================================================================
 # 
 # IMPORTANT: Build from repository root (required for Hugging Face Spaces)
-#   docker build -t negotiation-env:latest -f negotiation_env/server/Dockerfile .
+#   docker build -t negotiation-env:latest -f negotiation_env/negotiation_env/server/Dockerfile .
+#
+# The Dockerfile path is: negotiation_env/negotiation_env/server/Dockerfile
+# (note the double negotiation_env/ — outer folder contains the Python package)
 #
 # Run:
 #   docker run -d -p 8000:8000 negotiation-env:latest
@@ -32,9 +35,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-# Copy only what's needed for dependency resolution first (cache layer)
-COPY negotiation_env/pyproject.toml /app/negotiation_env/
-COPY negotiation_env/__init__.py /app/negotiation_env/
+# Copy only pyproject.toml for dependency caching
+COPY negotiation_env/pyproject.toml /app/pyproject.toml
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
@@ -68,7 +70,11 @@ COPY --from=builder /usr/local/bin/uvicorn /usr/local/bin/uvicorn
 COPY --chown=appuser:appuser negotiation_env /app/negotiation_env
 
 # Set environment variables
-ENV PYTHONPATH="/app:$PYTHONPATH" \
+# IMPORTANT: PYTHONPATH must point to the outer negotiation_env/ folder so that
+# Python can find the inner negotiation_env/ package (which has __init__.py).
+# Container layout after COPY: /app/negotiation_env/negotiation_env/__init__.py
+# So PYTHONPATH=/app/negotiation_env makes `import negotiation_env` resolve correctly.
+ENV PYTHONPATH="/app/negotiation_env:$PYTHONPATH" \
     PYTHONUNBUFFERED=1 \
     HOST="0.0.0.0" \
     PORT="8000" \
