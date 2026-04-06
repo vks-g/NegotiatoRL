@@ -27,7 +27,7 @@ A production-grade **multi-issue bilateral negotiation RL environment** for trai
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/NegotiationRL
+git clone https://github.com/vks-g/NegotiationRL
 cd NegotiationRL
 
 # Install dependencies with uv (recommended)
@@ -57,6 +57,7 @@ export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
 export HF_TOKEN="your-huggingface-token-here"
 export IMAGE_NAME="negotiation-env:latest"
 ```
+**If API key is used instead of HF token for API base url use API_TOKEN environment variable**
 
 **Using .env file (recommended):**
 ```bash
