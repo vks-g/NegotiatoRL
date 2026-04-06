@@ -1,3 +1,13 @@
+---
+title: NegotiationRL
+emoji: 🤝
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 8000
+---
+
 # NegotiationRL
 
 A production-grade **multi-issue bilateral negotiation RL environment** for training LLMs on complex negotiation tasks. Built on the [OpenEnv](https://github.com/meta-pytorch/openenv) framework for OpenAI Gym-like simplicity with Docker-based isolation, WebSocket APIs, and native TRL/GRPO integration.
@@ -285,7 +295,7 @@ Non-terminal step:
   reward = 0.5 * efficiency + 0.5 * concession_quality
 
 Terminal (deal reached):
-  reward = 0.35 * deal + 0.35 * utility + 
+  reward = 0.35 * deal + 0.35 * utility +
            0.15 * efficiency + 0.15 * concession
 
 Terminal (no deal):
@@ -445,10 +455,10 @@ def rollout_func(trainer, prompts):
     """Run negotiation episodes and collect trajectories."""
     with NegotiationEnv(base_url="https://your-env.hf.space").sync() as env:
         results = []
-        
+
         for i, prompt in enumerate(prompts):
             result = env.reset(seed=hash(prompt) % 10000)
-            
+
             # Your LLM decides actions based on observations
             while not result.done:
                 messages = [
@@ -458,13 +468,13 @@ def rollout_func(trainer, prompts):
                 action_text = generate(trainer, messages)
                 action = parse_action(action_text)
                 result = env.step(action)
-            
+
             results.append({
                 "prompt_ids": ...,
                 "completion_ids": ...,
                 "reward": result.reward,
             })
-        
+
         return results
 
 # Configure GRPO
