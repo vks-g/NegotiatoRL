@@ -2,83 +2,231 @@
 
 A production-grade **multi-issue bilateral negotiation RL environment** for training LLMs on complex negotiation tasks. Built on the [OpenEnv](https://github.com/meta-pytorch/openenv) framework for OpenAI Gym-like simplicity with Docker-based isolation, WebSocket APIs, and native TRL/GRPO integration.
 
-## Quick Start
+---
 
-### Installation
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- Docker (for containerized deployment)
+- Hugging Face API token (for LLM inference)
+
+### 1. Install Dependencies
 
 ```bash
 # Clone the repository
-git clone https://github.com/negotiatorl/NegotiationRL
+git clone https://github.com/your-org/NegotiationRL
 cd NegotiationRL
 
-# Install with uv (recommended)
-cd negotiation_env
+# Install dependencies with uv (recommended)
 uv sync
 
-# Or with pip
+# Activate the virtual environment to use commands directly
+source .venv/bin/activate
+
+# Now you can use openenv and python commands directly:
+openenv validate
+python inference.py
+```
+
+**Alternative with pip:**
+```bash
 pip install -e .
 ```
 
-### Run the Server Locally
+### 2. Configure Environment Variables
+
+Create a `.env` file in the repository root or export these variables:
 
 ```bash
-# Terminal 1: Start the environment server
-cd negotiation_env
-uv run server
-# Server available at http://localhost:8000
-
-# Health check
-curl http://localhost:8000/health
+# Required for inference
+export API_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export HF_TOKEN="your-huggingface-token-here"
+export IMAGE_NAME="negotiation-env:latest"
 ```
 
-### Test with a Simple Agent
+**Using .env file (recommended):**
+```bash
+# Create .env file
+cat > .env << EOF
+API_BASE_URL=https://router.huggingface.co/v1
+MODEL_NAME=Qwen/Qwen2.5-72B-Instruct
+HF_TOKEN=your-huggingface-token-here
+IMAGE_NAME=negotiation-env:latest
+EOF
+```
+
+### 3. Build Docker Image
 
 ```bash
-# Terminal 2: Run a quick test
-cd negotiation_env
+# Build the Docker image
+docker build -t negotiation-env:latest .
+
+# Verify build succeeded
+docker images negotiation-env:latest
+```
+
+### 4. Run Validation
+
+```bash
+# Validate OpenEnv compliance (after activating venv)
+openenv validate
+
+# Or without activating venv
+uv run openenv validate
+
+# Run comprehensive pre-submission checks
+./validate.sh
+```
+
+### 5. Run Inference
+
+**Method 1: Using the shell script (recommended)**
+```bash
+# Run all 3 tasks (local testing)
+./run_inference.sh
+
+# Run a specific task (evaluator mode)
+./run_inference.sh easy_conceder
+./run_inference.sh medium_tft
+./run_inference.sh hard_hardliner
+```
+
+**Method 2: Direct Python execution**
+```bash
+# After activating venv with: source .venv/bin/activate
+python inference.py
+
+# Or without activating venv
+uv run python inference.py
+
+# Run specific task
+NEGOTIATION_TASK=easy_conceder python inference.py
+```
+
+Both methods automatically load environment variables from `.env` file.
+
+### 6. Run Tests
+
+```bash
+# Using helper script
+./run_tests.sh
+
+# Or directly with pytest
 uv run pytest test_env.py -v
 
-# Or write your own client
-python -c "
-from negotiation_env import NegotiationEnv, NegotiationAction
-
-with NegotiationEnv(base_url='http://localhost:8000').sync() as env:
-    result = env.reset(seed=42)
-    print(f'Negotiating against: {result.observation.agent_role}')
-    print(f'Your utility if accept: {result.observation.agent_utility_if_accept}')
-"
+# After activating venv
+pytest test_env.py -v
 ```
 
-## Architecture
+---
+
+## 📁 Project Structure
+
+The project now uses a **flat structure** at the root level for OpenEnv compatibility:
+
+```
+NegotiationRL/
+├── inference.py              # Main inference script (REQUIRED at root)
+├── .env                      # Environment configuration
+├── openenv.yaml              # OpenEnv task definitions
+├── pyproject.toml            # Package metadata & dependencies
+├── Dockerfile                # Container definition
+├── __init__.py               # Module exports
+├── client.py                 # WebSocket client
+├── models.py                 # Pydantic type contracts
+├── graders.py                # Grader functions for tasks
+├── rewards.py                # 4 GRPO-compatible reward functions
+├── strategies.py             # 5 opponent negotiation strategies
+├── cli.py                    # CLI entry points
+├── test_env.py               # Comprehensive test suite (25 tests)
+├── server/                   # Server-side environment
+│   ├── __init__.py
+│   ├── app.py                # FastAPI application + main()
+│   └── environment.py        # Core negotiation game logic
+├── run_inference.sh          # Helper: Run inference with .env loading
+├── run_tests.sh              # Helper: Run test suite
+├── run_server.sh             # Helper: Start development server
+├── build_docker.sh           # Helper: Build Docker image
+├── validate.sh               # Helper: Pre-submission validation
+├── information/              # OpenEnv educational materials
+│   ├── README1-5.md          # OpenEnv philosophy & patterns
+│   ├── sample_inference.py   # Inference template
+│   └── *.png                 # Task requirements & criteria
+└── README.md                 # This file
+```
+
+---
+
+## 🎯 Tasks: Three Negotiation Scenarios
+
+The environment includes three built-in negotiation tasks, defined in `openenv.yaml`:
+
+### 1. **easy_conceder** — Establish baseline
+
+- **Opponent**: Conceder strategy - rapidly moves toward midpoint, accepts easily
+- **Difficulty**: Easy (ideal for initial training)
+- **Max Rounds**: 10
+- **Use case**: Verify your policy can reach agreements
+- **Typical success**: 80%+ deal rate, 0.6+ utility
+
+```python
+result = env.reset(strategy_name="conceder", seed=42, max_rounds=10)
+# Opponent will concede 15% per round
+# Accepts any offer above BATNA
+```
+
+### 2. **medium_tft** — Learn adaptive behavior
+
+- **Opponent**: Tit-for-Tat - mirrors your concession rate
+- **Difficulty**: Medium (requires pattern recognition)
+- **Max Rounds**: 10
+- **Use case**: Train agents to adjust strategy based on counterpart behavior
+- **Typical success**: 60%+ deal rate, 0.5+ utility
+
+```python
+result = env.reset(strategy_name="tit_for_tat", seed=42, max_rounds=10)
+# If you concede 0.1 in round 1, opponent concedes ~0.09
+# Must learn to signal willingness without overcommitting
+```
+
+### 3. **hard_hardliner** — Master complex negotiations
+
+- **Opponent**: Hardliner - barely concedes (2% per round)
+- **Difficulty**: Hard (requires sophisticated negotiation)
+- **Max Rounds**: 15
+- **Use case**: Evaluate policy robustness and deal-making skill
+- **Typical success**: 30-40% deal rate, requires careful utility management
+
+```python
+result = env.reset(strategy_name="hardliner", seed=42, max_rounds=15)
+# Opponent only concedes when truly necessary
+# Requires finding integrative (win-win) solutions
+```
+
+### Additional Strategies
+
+You can also use `"random"` (unpredictable offers) or `"time_pressured"` (panics near deadline) for robustness testing.
+
+---
+
+## 🏗️ Architecture
 
 This project follows the **3-component OpenEnv pattern**:
-
-```
-negotiation_env/
-├── models.py                # Type-safe contracts (Action, Observation, State)
-├── client.py                # Python client (what you import in training code)
-├── rewards.py               # Pure reward functions (4 signals)
-├── strategies.py            # 5 parameterized opponent strategies
-├── server/
-│   ├── environment.py       # Core negotiation logic (reset, step, state)
-│   ├── app.py               # FastAPI + WebSocket server
-│   └── Dockerfile           # Containerized for reproducibility
-├── openenv.yaml             # OpenEnv manifest
-├── pyproject.toml           # Package metadata
-├── test_env.py              # Smoke tests
-└── README.md                # Detailed environment docs
-```
 
 ### How It Works
 
 1. **Server Side** (runs in Docker container)
-   - `environment.py` implements the negotiation game logic
+   - `server/environment.py` implements the negotiation game logic
    - Maintains episode state: offers, utility calculations, deadline tracking
    - Returns typed observations (Pydantic models)
    - Computes rewards using GRPO-compatible signals
 
 2. **Client Side** (your training code)
-   - Import `NegotiationEnv` — it handles WebSocket communication
+   - Import `NegotiationEnv` from `client.py` — it handles WebSocket communication
    - Call `reset()`, `step(action)`, and `state()`
    - No need to know about HTTP/WebSocket details
    - Works in notebooks, scripts, and TRL trainers
@@ -90,91 +238,18 @@ negotiation_env/
 
 ```python
 # Your training code doesn't care about transport
+from client import NegotiationEnv
+from models import NegotiationAction
+
 env = NegotiationEnv(base_url="http://localhost:8000")
 result = env.reset()           # WebSocket under the hood
 result = env.step(action)      # WebSocket under the hood
 state = env.state()            # WebSocket under the hood
 ```
 
-## Tasks: Three Negotiation Scenarios
+---
 
-The environment includes three built-in negotiation tasks, defined in `openenv.yaml`:
-
-### 1. **easy_conceder** — Establish baseline
-
-- **Opponent**: Rapidly moves toward midpoint, accepts easily
-- **Difficulty**: Easy (ideal for initial training)
-- **Use case**: Verify your policy can reach agreements
-- **Typical success**: 80%+ deal rate, 0.6+ utility
-
-```python
-result = env.reset(strategy_name="conceder")
-# Opponent will concede 15% per round
-# Accepts any offer above BATNA
-```
-
-### 2. **medium_tit_for_tat** — Learn adaptive behavior
-
-- **Opponent**: Mirrors your concession rate (min 1%)
-- **Difficulty**: Medium (requires pattern recognition)
-- **Use case**: Train agents to adjust strategy based on counterpart behavior
-- **Typical success**: 60%+ deal rate, 0.5+ utility
-
-```python
-result = env.reset(strategy_name="tit_for_tat")
-# If you concede 0.1 in round 1, opponent concedes ~0.09
-# Must learn to signal willingness without overcommitting
-```
-
-### 3. **hard_hardliner** — Master complex negotiations
-
-- **Opponent**: Barely concedes (2% per round), demands near-aspiration
-- **Difficulty**: Hard (requires sophisticated negotiation)
-- **Use case**: Evaluate policy robustness and deal-making skill
-- **Typical success**: 30-40% deal rate, requires careful utility management
-
-```python
-result = env.reset(strategy_name="hardliner")
-# Opponent only concedes when truly necessary
-# Requires finding integrative (win-win) solutions
-```
-
-### Additional Strategies
-
-You can also use `"random"` (unpredictable offers) or `"time_pressured"` (panics near deadline) for robustness testing.
-
-## Configuration
-
-### Environment Variables
-
-Set these before running `docker run` or deploying to Hugging Face Spaces:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_BASE_URL` | `http://localhost:8000` | Server endpoint for inference |
-| `MODEL_NAME` | `Qwen/Qwen2.5-72B-Instruct` | LLM identifier for inference |
-| `HF_TOKEN` | (required) | Hugging Face API key for model access |
-| `LOCAL_IMAGE_NAME` | `negotiation-env:latest` | Docker image name if using local container |
-| `HOST` | `0.0.0.0` | Server bind address |
-| `PORT` | `8000` | Server port |
-| `WORKERS` | `4` | Uvicorn worker processes |
-| `MAX_CONCURRENT_SESSIONS` | `100` | Max concurrent WebSocket connections |
-
-### Reset Parameters
-
-When calling `env.reset()`, you can customize the negotiation:
-
-```python
-result = env.reset(
-    seed=42,                      # For reproducibility
-    episode_id="ep-001",          # Custom ID (auto-generated if omitted)
-    strategy_name="hardliner",    # Force specific opponent
-    agent_role="buyer",           # Force "buyer" or "seller"
-    max_rounds=15                 # Override default 10 rounds
-)
-```
-
-## Reward Functions
+## 🎁 Reward Functions
 
 The environment provides **4 GRPO-compatible reward signals** designed to guide learning:
 
@@ -219,108 +294,156 @@ Terminal (no deal):
 
 This creates rich gradient information for policy gradient methods like GRPO.
 
-## Development
+---
 
-### Run Tests Locally
+## 🐳 Docker Commands
+
+### Build Image
 
 ```bash
-cd negotiation_env
+# Build from repository root
+docker build -t negotiation-env:latest .
 
-# Run all smoke tests
-uv run test
-
-# Or with pytest directly
-pytest test_env.py -v
-
-# Test specific scenarios
-pytest test_env.py::test_hardliner_negotiation -v
-pytest test_env.py::test_concurrent_sessions -v
+# Or use the helper script
+./build_docker.sh
 ```
 
-### Tests Cover
+### Run Container
 
+```bash
+# Run in detached mode
+docker run -d -p 8000:8000 \
+  -e WORKERS=4 \
+  negotiation-env:latest
+
+# Run in foreground with logs
+docker run -p 8000:8000 negotiation-env:latest
+
+# Test the deployment
+curl http://localhost:8000/health
+# Expected: {"status":"healthy"}
+```
+
+### Stop Container
+
+```bash
+# Find container ID
+docker ps
+
+# Stop container
+docker stop <container-id>
+
+# Remove container
+docker rm <container-id>
+```
+
+---
+
+## 🧪 Development
+
+### Run Server Locally
+
+```bash
+# Using helper script
+./run_server.sh
+
+# Or directly
+uv run server
+
+# After activating venv
+server
+
+# Server available at http://localhost:8000
+# Health check: curl http://localhost:8000/health
+# API docs: http://localhost:8000/docs
+```
+
+### Run Tests
+
+```bash
+# Run all tests (25 tests)
+./run_tests.sh
+
+# Or with pytest
+uv run pytest test_env.py -v
+
+# Test specific scenarios
+uv run pytest test_env.py::TestStrategyBehavior -v
+uv run pytest test_env.py::TestRewardBounds -v
+```
+
+### Test Coverage
+
+The test suite covers:
+- ✅ Episode completion conditions (offer accept, reject, deadline)
 - ✅ All 5 strategies (hardliner, conceder, tit-for-tat, random, time-pressured)
-- ✅ Valid action validation
-- ✅ Utility calculations
-- ✅ Reward computation
-- ✅ Concurrent WebSocket sessions (100+)
+- ✅ Reward bounds and computation
+- ✅ Grader output completeness and validity
 - ✅ Reproducibility via seeding
-- ✅ Grader output accuracy
+- ✅ Utility calculations (buyer/seller preferences)
+- ✅ Observation structure
+- ✅ HTTP endpoint integration
 
 ### Code Quality
 
 ```bash
 # Type checking
-mypy negotiation_env --strict
+mypy . --strict
 
 # Linting
-ruff check negotiation_env
+ruff check .
 
 # Format
-ruff format negotiation_env
+ruff format .
 ```
 
-## Deployment
+---
+
+## 🚢 Deployment
 
 ### Deploy to Hugging Face Spaces
 
 The fastest path from local code to a live endpoint:
 
 ```bash
-cd negotiation_env
-
-# Push to HF Spaces (you'll need write access to your HF account)
-openenv push --repo-id negotiatorl/negotiation-env
+# Push to HF Spaces (requires HF write access)
+openenv push --repo-id your-username/negotiation-env
 ```
 
 Your environment will be available at:
-- **API Endpoint**: `https://negotiatorl-negotiation-env.hf.space`
-- **API Docs**: `https://negotiatorl-negotiation-env.hf.space/docs`
-- **Health Check**: `https://negotiatorl-negotiation-env.hf.space/health`
+- **API Endpoint**: `https://your-username-negotiation-env.hf.space`
+- **API Docs**: `https://your-username-negotiation-env.hf.space/docs`
+- **Health Check**: `https://your-username-negotiation-env.hf.space/health`
 
 Configure via Space Settings → Variables:
 - `MODEL_NAME` = your LLM identifier
 - `API_BASE_URL` = LLM API endpoint
 - `HF_TOKEN` = your API key
 
-### Docker Build & Run Locally
-
-```bash
-# Build the image
-docker build -t negotiation-env:latest -f negotiation_env/server/Dockerfile .
-
-# Run the container
-docker run -d -p 8000:8000 \
-  -e WORKERS=4 \
-  -e MAX_CONCURRENT_ENVS=100 \
-  negotiation-env:latest
-
-# Test the deployment
-curl http://localhost:8000/health
-# {"status": "healthy"}
-```
-
 ### Docker Registry
 
 Once deployed to HF Spaces, you can pull the image:
 
 ```bash
-docker pull registry.hf.space/negotiatorl/negotiation-env:latest
-docker run -d -p 8000:8000 registry.hf.space/negotiatorl/negotiation-env:latest
+docker pull registry.hf.space/your-username/negotiation-env:latest
+docker run -d -p 8000:8000 registry.hf.space/your-username/negotiation-env:latest
 ```
 
-## Integration with OpenEnv + TRL
+---
+
+## 🤖 Integration with TRL/GRPO
 
 This environment is designed for training with TRL's **GRPOTrainer**:
 
 ```python
 from trl import GRPOTrainer, GRPOConfig
-from negotiation_env import NegotiationEnv, NegotiationAction
+from client import NegotiationEnv
+from models import NegotiationAction
 
 # Custom rollout function
 def rollout_func(trainer, prompts):
     """Run negotiation episodes and collect trajectories."""
-    with NegotiationEnv(base_url="https://negotiatorl-negotiation-env.hf.space").sync() as env:
+    with NegotiationEnv(base_url="https://your-env.hf.space").sync() as env:
         results = []
         
         for i, prompt in enumerate(prompts):
@@ -351,8 +474,6 @@ config = GRPOConfig(
     per_device_train_batch_size=1,
     gradient_accumulation_steps=64,
     max_completion_length=256,
-    use_vllm=True,
-    vllm_mode="colocate",
 )
 
 # Train
@@ -367,7 +488,9 @@ trainer.train()
 
 See the [TRL documentation](https://github.com/huggingface/trl) for complete examples.
 
-## OpenEnv Integration
+---
+
+## 📚 OpenEnv Integration
 
 This environment adheres strictly to the **OpenEnv specification**:
 
@@ -378,46 +501,138 @@ This environment adheres strictly to the **OpenEnv specification**:
 5. **Reproducibility**: Seeded randomness ensures deterministic episodes
 6. **Docker Ready**: Runs in containers for production isolation
 
-For more on the OpenEnv philosophy, see the included `Information/` folder:
+For more on the OpenEnv philosophy, see the `information/` folder:
 - `README1.md` — Why OpenEnv (Gym → Production RL)
 - `README2.md` — Using existing environments
 - `README3.md` — Deploying environments
 - `README4.md` — Building custom environments
 - `README5.md` — Training with OpenEnv + TRL
 
-## Project Structure
+---
 
-```
-NegotiationRL/
-├── negotiation_env/
-│   ├── __init__.py              # Module exports
-│   ├── models.py                # Pydantic contracts (252 lines)
-│   ├── client.py                # WebSocket client
-│   ├── rewards.py               # 4 reward functions (pure)
-│   ├── strategies.py            # 5 opponent strategies
-│   ├── test_env.py              # Comprehensive tests
-│   ├── openenv.yaml             # OpenEnv manifest
-│   ├── pyproject.toml           # Package metadata
-│   ├── README.md                # Detailed environment docs
-│   └── server/
-│       ├── __init__.py
-│       ├── environment.py       # Core negotiation engine
-│       ├── app.py               # FastAPI server
-│       └── Dockerfile           # Container definition
-├── Information/                 # OpenEnv educational materials
-│   ├── README1-5.md             # OpenEnv philosophy & patterns
-│   ├── sample_inference.py      # Inference script template
-│   ├── Detailed_Requirements.png
-│   ├── Evaluation_Criteria.png
-│   └── ... (task images, validation scripts)
-├── .ai-workflow/                # Development contracts & logs
-│   └── contracts/
-│       └── negotiation-env-contract.md
-├── README.md                    # This file
-└── .gitignore
+## 🛠️ Helper Scripts
+
+All scripts are located at the repo root:
+
+| Script | Description |
+|--------|-------------|
+| `run_inference.sh` | Run inference (all tasks or specific task) |
+| `run_tests.sh` | Run test suite (25 tests) |
+| `run_server.sh` | Start local development server |
+| `build_docker.sh` | Build Docker image with validation |
+| `validate.sh` | Pre-submission validation (22 checks) |
+
+**Usage:**
+```bash
+# Run all tasks (local testing)
+./run_inference.sh
+
+# Run specific task
+./run_inference.sh easy_conceder
+
+# Run tests
+./run_tests.sh
+
+# Start server
+./run_server.sh
+
+# Build Docker
+./build_docker.sh
+
+# Validate before submission
+./validate.sh
 ```
 
-## Hackathon Context
+---
+
+## 🔍 Troubleshooting
+
+### "ModuleNotFoundError: No module named 'openai'"
+
+**Solution:** Activate the virtual environment or use `uv run`
+```bash
+# Activate venv first
+source .venv/bin/activate
+python inference.py
+
+# Or use uv run
+uv run python inference.py
+```
+
+### "OpenAIError: The api_key client option must be set"
+
+**Solution:** Set HF_TOKEN in `.env` file or export it
+```bash
+# Add to .env file
+echo "HF_TOKEN=your-token-here" >> .env
+
+# Or export directly
+export HF_TOKEN=your-token-here
+```
+
+### "openenv: command not found"
+
+**Solution:** Activate the virtual environment
+```bash
+source .venv/bin/activate
+openenv validate
+
+# Or use uv run
+uv run openenv validate
+```
+
+### Docker build fails
+
+**Solution:** Build from repo root (not from server/ directory)
+```bash
+# Correct (from repo root)
+docker build -t negotiation-env:latest .
+
+# Wrong
+cd server && docker build ...
+```
+
+### Inference hangs or times out
+
+**Solution:** Make sure Docker container is running
+```bash
+# Check if container is running
+docker ps
+
+# Start container if not running
+docker run -d -p 8000:8000 negotiation-env:latest
+
+# Check health
+curl http://localhost:8000/health
+```
+
+---
+
+## ✅ Pre-Submission Checklist
+
+Before submitting to the hackathon, ensure:
+
+- [ ] `uv sync` completes successfully
+- [ ] `.env` file configured with real HF_TOKEN
+- [ ] `openenv validate` passes: `[OK] Ready for multi-mode deployment`
+- [ ] All 25 tests pass: `./run_tests.sh`
+- [ ] All 22 validation checks pass: `./validate.sh`
+- [ ] Docker builds successfully: `docker build -t negotiation-env:latest .`
+- [ ] Docker container runs: `docker run -d -p 8000:8000 negotiation-env:latest`
+- [ ] Health endpoint responds: `curl http://localhost:8000/health`
+- [ ] Inference runs without errors: `./run_inference.sh`
+- [ ] All 3 tasks produce scores in [0.0, 1.0]
+- [ ] README.md has no placeholders or TODOs
+- [ ] Code committed to git
+
+**Quick validation:**
+```bash
+./validate.sh && echo "✅ Ready for submission!"
+```
+
+---
+
+## 🏆 Hackathon Context
 
 This project is a submission to the **Meta PyTorch OpenEnv Hackathon** hosted by Scaler School of Technology & Hugging Face.
 
@@ -429,20 +644,14 @@ This project is a submission to the **Meta PyTorch OpenEnv Hackathon** hosted by
 - ✅ Type-safe Pydantic models
 - ✅ Docker deployment ready
 - ✅ Comprehensive documentation
-- ✅ Test suite with smoke tests
+- ✅ Test suite with 25 tests
 - ✅ HF Spaces deployment support
+- ✅ Flat package structure for OpenEnv compliance
+- ✅ `openenv validate` passes
 
-**Submission Checklist**:
-- ✅ `README.md` (this file, in repo root)
-- ✅ `negotiation_env/README.md` (detailed environment docs)
-- ✅ All source code in `negotiation_env/`
-- ✅ Tests in `negotiation_env/test_env.py`
-- ✅ Docker build works
-- ✅ OpenEnv client interface confirmed
-- ✅ No hardcoded secrets
-- ✅ Python 3.11+ compatible
+---
 
-## References
+## 📖 References
 
 - [OpenEnv Repository](https://github.com/meta-pytorch/openenv)
 - [OpenEnv Documentation](https://openenv.org)
@@ -450,17 +659,22 @@ This project is a submission to the **Meta PyTorch OpenEnv Hackathon** hosted by
 - [Pydantic Models](https://docs.pydantic.dev)
 - [FastAPI WebSockets](https://fastapi.tiangolo.com/advanced/websockets/)
 
-## License
+---
+
+## 📄 License
 
 MIT License — See LICENSE file for full text.
 
 ---
 
+## 💡 Support
+
 **Questions or issues?**
 
-1. Check `negotiation_env/README.md` for detailed environment reference
-2. Review `Information/` folder for OpenEnv concepts
-3. Run `pytest test_env.py -v` to verify setup
-4. Check server logs: `uv run server` shows request traces
+1. Check `information/` folder for OpenEnv concepts
+2. Review this README for setup instructions
+3. Run `./validate.sh` to check your environment
+4. Run `pytest test_env.py -v` to verify installation
+5. Check server logs: `uv run server` shows request traces
 
-Built with ❤️ for the OpenEnv Hackathon.
+Built with ❤️ for the Meta PyTorch OpenEnv Hackathon.
