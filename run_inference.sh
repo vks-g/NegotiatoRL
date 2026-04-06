@@ -88,4 +88,4 @@ echo -e "${GREEN}═════════════════════
 echo ""
 
 # Run inference.py using uv
-exec uv run --project negotiation_env python3 inference.py
+exec uv run python3 inference.py

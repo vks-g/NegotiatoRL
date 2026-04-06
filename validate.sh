@@ -65,11 +65,11 @@ echo ""
 
 # 3. Check openenv.yaml
 echo -e "${YELLOW}[3/10]${NC} Checking openenv.yaml..."
-if [ -f "negotiation_env/openenv.yaml" ]; then
-    check_pass "openenv.yaml exists"
+if [ -f "openenv.yaml" ]; then
+    check_pass "openenv.yaml exists at repo root"
     
     # Check for 3 tasks
-    task_count=$(grep -c "^  - name:" negotiation_env/openenv.yaml || echo 0)
+    task_count=$(grep -c "^  - name:" openenv.yaml || echo 0)
     if [ "$task_count" -eq 3 ]; then
         check_pass "3 tasks defined"
     else
@@ -77,20 +77,20 @@ if [ -f "negotiation_env/openenv.yaml" ]; then
     fi
     
     # Check for grader functions
-    grep -q "fn: negotiation_env.graders:" negotiation_env/openenv.yaml && check_pass "Grader functions referenced" || check_fail "Grader functions not properly referenced"
+    grep -q "fn: negotiation_env.graders:" openenv.yaml && check_pass "Grader functions referenced" || check_fail "Grader functions not properly referenced"
 else
-    check_fail "openenv.yaml not found"
+    check_fail "openenv.yaml not found at repo root"
 fi
 echo ""
 
 # 4. Check Dockerfile
 echo -e "${YELLOW}[4/10]${NC} Checking Dockerfile..."
-if [ -f "negotiation_env/server/Dockerfile" ]; then
-    check_pass "Dockerfile exists"
+if [ -f "Dockerfile" ]; then
+    check_pass "Dockerfile exists at repo root"
     
-    grep -q 'PYTHONPATH="/app"' negotiation_env/server/Dockerfile && check_pass "PYTHONPATH correctly configured" || check_fail "PYTHONPATH may be incorrect"
+    grep -q 'PYTHONPATH="/app"' Dockerfile && check_pass "PYTHONPATH correctly configured" || check_fail "PYTHONPATH may be incorrect"
 else
-    check_fail "Dockerfile not found"
+    check_fail "Dockerfile not found at repo root"
 fi
 echo ""
 
@@ -120,7 +120,7 @@ echo ""
 
 # 8. Run tests
 echo -e "${YELLOW}[8/10]${NC} Running test suite..."
-if uv run --project negotiation_env pytest negotiation_env/test_env.py -q > /dev/null 2>&1; then
+if uv run pytest negotiation_env/test_env.py -q > /dev/null 2>&1; then
     check_pass "All tests passing"
 else
     check_fail "Some tests failing"
@@ -129,7 +129,7 @@ echo ""
 
 # 9. Check Python imports work
 echo -e "${YELLOW}[9/10]${NC} Checking Python imports..."
-if uv run --project negotiation_env python -c "from negotiation_env import NegotiationEnv, NegotiationAction; from negotiation_env import grade_easy_conceder" > /dev/null 2>&1; then
+if uv run python -c "from negotiation_env import NegotiationEnv, NegotiationAction; from negotiation_env import grade_easy_conceder" > /dev/null 2>&1; then
     check_pass "All imports working"
 else
     check_fail "Import errors detected"

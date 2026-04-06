@@ -30,4 +30,4 @@ echo -e "${GREEN}═════════════════════
 echo ""
 
 # Run server using uv
-exec uv run --project negotiation_env server
+exec uv run server

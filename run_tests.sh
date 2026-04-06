@@ -22,7 +22,7 @@ echo -e "${YELLOW}Running all tests...${NC}"
 echo ""
 
 # Run pytest with verbose output
-uv run --project negotiation_env pytest negotiation_env/test_env.py -v --tb=short
+uv run pytest negotiation_env/test_env.py -v --tb=short
 
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"

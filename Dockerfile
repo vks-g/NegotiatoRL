@@ -4,7 +4,7 @@
 # ============================================================================
 # 
 # Build from repository root:
-#   docker build -t negotiation-env:latest -f negotiation_env/server/Dockerfile .
+#   docker build -t negotiation-env:latest .
 #
 # Run:
 #   docker run -d -p 8000:8000 negotiation-env:latest
@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 # Copy only pyproject.toml for dependency caching
-COPY negotiation_env/pyproject.toml /app/pyproject.toml
+COPY pyproject.toml /app/pyproject.toml
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
