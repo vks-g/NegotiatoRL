@@ -42,11 +42,26 @@ STDOUT FORMAT
 import asyncio
 import os
 import textwrap
+from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 from openai import OpenAI
 
-from negotiation_env import NegotiationEnv, NegotiationAction
+from client import NegotiationEnv
+from models import NegotiationAction
+
+# Load environment variables from .env file if it exists
+# This allows running `python inference.py` directly without needing run_inference.sh
+try:
+    from dotenv import load_dotenv
+
+    # Look for .env file in the same directory as this script
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+except ImportError:
+    # python-dotenv not installed, skip (will rely on environment variables)
+    pass
 
 # Environment configuration
 IMAGE_NAME = os.getenv("IMAGE_NAME")

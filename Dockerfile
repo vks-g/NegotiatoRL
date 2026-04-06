@@ -63,11 +63,12 @@ RUN addgroup --gid 1001 --system appuser && \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin/uvicorn /usr/local/bin/uvicorn
 
-# Copy the negotiation_env package
-COPY --chown=appuser:appuser negotiation_env /app/negotiation_env
+# Copy the Python files (flat structure at root)
+COPY --chown=appuser:appuser __init__.py client.py models.py graders.py rewards.py strategies.py /app/
+COPY --chown=appuser:appuser server /app/server
 
 # Set environment variables
-# PYTHONPATH=/app so that `import negotiation_env` finds /app/negotiation_env/
+# PYTHONPATH=/app so that imports work from /app/
 ENV PYTHONPATH="/app" \
     PYTHONUNBUFFERED=1 \
     HOST="0.0.0.0" \
@@ -85,4 +86,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Run the server
-CMD ["uvicorn", "negotiation_env.server.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

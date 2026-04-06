@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Tuple
 import random
 from dataclasses import dataclass
 
-from .rewards import compute_utility, _party_prefers_low
+from rewards import compute_utility, _party_prefers_low
 
 
 @dataclass

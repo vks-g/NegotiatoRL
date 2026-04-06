@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from openenv.core.env_server import Environment
 
-from ..models import (
+from models import (
     NegotiationAction,
     NegotiationObservation,
     NegotiationState,
@@ -24,14 +24,14 @@ from ..models import (
     OfferRecord,
     GraderOutput,
 )
-from ..strategies import (
+from strategies import (
     CounterpartStrategy,
     NegotiationContext,
     create_strategy,
     get_random_strategy,
     get_all_strategy_names,
 )
-from ..rewards import (
+from rewards import (
     compute_utility,
     compute_joint_utility,
     compute_pareto_frontier_utility,

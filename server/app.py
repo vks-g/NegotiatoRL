@@ -30,7 +30,7 @@ except ImportError:
         ) from e
 
 from .environment import NegotiationEnvironment
-from ..models import NegotiationAction, NegotiationObservation
+from models import NegotiationAction, NegotiationObservation
 
 # Create the FastAPI application.
 # Passing the class (not an instance) allows the framework to manage
@@ -40,3 +40,17 @@ app = _create_app(
     NegotiationAction,
     NegotiationObservation,
 )
+
+
+def main() -> None:
+    """
+    Main entry point for running the server directly.
+    This function is required by openenv validate for multi-mode deployment.
+    """
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+
+if __name__ == "__main__":
+    main()

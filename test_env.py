@@ -17,21 +17,21 @@ import pytest
 from typing import Dict, List, Set
 
 # Import the environment directly (not via client for unit testing)
-from negotiation_env.server.environment import NegotiationEnvironment
-from negotiation_env.models import (
+from server.environment import NegotiationEnvironment
+from models import (
     NegotiationAction,
     NegotiationObservation,
     NegotiationState,
     GraderOutput,
 )
-from negotiation_env.rewards import (
+from rewards import (
     deal_reward,
     utility_score,
     efficiency_reward,
     concession_quality,
     compute_utility,
 )
-from negotiation_env.strategies import (
+from strategies import (
     get_all_strategy_names,
     create_strategy,
     HardlinerStrategy,
@@ -481,7 +481,7 @@ class TestStrategyBehavior:
         """Test that hardliner strategy barely concedes."""
         strategy = HardlinerStrategy(seed=42)
 
-        from negotiation_env.strategies import NegotiationContext
+        from strategies import NegotiationContext
 
         context = NegotiationContext(
             round_number=5,
@@ -517,7 +517,7 @@ class TestStrategyBehavior:
         """Test that conceder accepts offers above reservation."""
         strategy = ConcederStrategy(seed=42)
 
-        from negotiation_env.strategies import NegotiationContext
+        from strategies import NegotiationContext
 
         context = NegotiationContext(
             round_number=3,
@@ -552,7 +552,7 @@ class TestStrategyBehavior:
 
     def test_all_strategies_return_valid_offers(self):
         """Test that all strategies return offers with all issues."""
-        from negotiation_env.strategies import NegotiationContext
+        from strategies import NegotiationContext
 
         context = NegotiationContext(
             round_number=2,

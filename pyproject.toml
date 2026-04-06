@@ -25,6 +25,7 @@ dependencies = [
     "uvicorn>=0.23.0",
     "websockets>=11.0",
     "openai>=2.30.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -38,15 +39,28 @@ dev = [
 
 [project.scripts]
 # CLI entry points - use `uv run server` or `uv run tests`
-server = "negotiation_env.cli:run_server"
-test = "negotiation_env.cli:run_tests"
+# server entry point references the main() function for openenv compatibility
+server = "server.app:main"
+test = "cli:run_tests"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# Flat package structure - include specific files and server directory
 [tool.hatch.build.targets.wheel]
-packages = ["negotiation_env"]
+include = [
+    "__init__.py",
+    "client.py",
+    "models.py",
+    "graders.py",
+    "rewards.py",
+    "strategies.py",
+    "cli.py",
+    "server/__init__.py",
+    "server/app.py",
+    "server/environment.py",
+]
 
 # PEP 735 dependency groups (modern uv syntax)
 [dependency-groups]

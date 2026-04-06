@@ -23,7 +23,7 @@ from typing import Dict, Optional, Any
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 
-from .models import (
+from models import (
     NegotiationAction,
     NegotiationObservation,
     NegotiationState,

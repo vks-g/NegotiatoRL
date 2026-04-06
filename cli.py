@@ -12,14 +12,14 @@ from pathlib import Path
 
 def run_server() -> None:
     """Start the uvicorn server with reload enabled for development."""
-    # Get the package directory to run server relative to it
-    package_dir = Path(__file__).parent
+    # Get the root directory (where this file lives)
+    root_dir = Path(__file__).parent
 
     cmd = [
         sys.executable,
         "-m",
         "uvicorn",
-        "negotiation_env.server.app:app",
+        "server.app:app",
         "--host",
         "0.0.0.0",
         "--port",
@@ -28,7 +28,7 @@ def run_server() -> None:
     ]
 
     try:
-        subprocess.run(cmd, cwd=package_dir.parent, check=True)
+        subprocess.run(cmd, cwd=root_dir, check=True)
     except KeyboardInterrupt:
         print("\nServer stopped.")
         sys.exit(0)
@@ -38,8 +38,8 @@ def run_server() -> None:
 
 def run_tests() -> None:
     """Run pytest on the test suite with verbose output."""
-    package_dir = Path(__file__).parent
-    test_file = package_dir / "test_env.py"
+    root_dir = Path(__file__).parent
+    test_file = root_dir / "test_env.py"
 
     cmd = [sys.executable, "-m", "pytest", str(test_file), "-v"]
 
@@ -48,7 +48,7 @@ def run_tests() -> None:
         cmd.extend(sys.argv[1:])
 
     try:
-        result = subprocess.run(cmd, cwd=package_dir.parent)
+        result = subprocess.run(cmd, cwd=root_dir)
         sys.exit(result.returncode)
     except KeyboardInterrupt:
         print("\nTests interrupted.")

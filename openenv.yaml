@@ -34,7 +34,7 @@ tasks:
     difficulty: easy
     max_steps: 10
     grader:
-      fn: negotiation_env.graders:grade_easy_conceder
+      fn: graders:grade_easy_conceder
       score_range: [0.0, 1.0]
       success_threshold: 0.5
       deterministic: true
@@ -51,7 +51,7 @@ tasks:
     difficulty: medium
     max_steps: 10
     grader:
-      fn: negotiation_env.graders:grade_medium_tft
+      fn: graders:grade_medium_tft
       score_range: [0.0, 1.0]
       success_threshold: 0.5
       deterministic: true
@@ -68,7 +68,7 @@ tasks:
     difficulty: hard
     max_steps: 15
     grader:
-      fn: negotiation_env.graders:grade_hard_hardliner
+      fn: graders:grade_hard_hardliner
       score_range: [0.0, 1.0]
       success_threshold: 0.4
       deterministic: true

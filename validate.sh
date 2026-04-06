@@ -77,7 +77,7 @@ if [ -f "openenv.yaml" ]; then
     fi
     
     # Check for grader functions
-    grep -q "fn: negotiation_env.graders:" openenv.yaml && check_pass "Grader functions referenced" || check_fail "Grader functions not properly referenced"
+    grep -q "fn: graders:" openenv.yaml && check_pass "Grader functions referenced" || check_fail "Grader functions not properly referenced"
 else
     check_fail "openenv.yaml not found at repo root"
 fi
@@ -96,11 +96,11 @@ echo ""
 
 # 5. Check graders.py
 echo -e "${YELLOW}[5/10]${NC} Checking grader functions..."
-if [ -f "negotiation_env/graders.py" ]; then
+if [ -f "graders.py" ]; then
     check_pass "graders.py exists"
-    grep -q "def grade_easy_conceder" negotiation_env/graders.py && check_pass "grade_easy_conceder defined"
-    grep -q "def grade_medium_tft" negotiation_env/graders.py && check_pass "grade_medium_tft defined"
-    grep -q "def grade_hard_hardliner" negotiation_env/graders.py && check_pass "grade_hard_hardliner defined"
+    grep -q "def grade_easy_conceder" graders.py && check_pass "grade_easy_conceder defined"
+    grep -q "def grade_medium_tft" graders.py && check_pass "grade_medium_tft defined"
+    grep -q "def grade_hard_hardliner" graders.py && check_pass "grade_hard_hardliner defined"
 else
     check_fail "graders.py not found"
 fi
@@ -109,7 +109,7 @@ echo ""
 # 6. Check imports in inference.py
 echo -e "${YELLOW}[6/10]${NC} Checking inference.py imports..."
 grep -q "from openai import OpenAI" inference.py && check_pass "Uses OpenAI client" || check_fail "OpenAI client not imported"
-grep -q "from negotiation_env import" inference.py && check_pass "Imports negotiation_env package" || check_fail "negotiation_env import missing"
+grep -q "from client import\|from models import" inference.py && check_pass "Imports client/models" || check_fail "client/models import missing"
 echo ""
 
 # 7. Check log format
@@ -120,7 +120,7 @@ echo ""
 
 # 8. Run tests
 echo -e "${YELLOW}[8/10]${NC} Running test suite..."
-if uv run pytest negotiation_env/test_env.py -q > /dev/null 2>&1; then
+if uv run pytest test_env.py -q > /dev/null 2>&1; then
     check_pass "All tests passing"
 else
     check_fail "Some tests failing"
@@ -129,7 +129,7 @@ echo ""
 
 # 9. Check Python imports work
 echo -e "${YELLOW}[9/10]${NC} Checking Python imports..."
-if uv run python -c "from negotiation_env import NegotiationEnv, NegotiationAction; from negotiation_env import grade_easy_conceder" > /dev/null 2>&1; then
+if uv run python -c "from client import NegotiationEnv; from models import NegotiationAction; from graders import grade_easy_conceder" > /dev/null 2>&1; then
     check_pass "All imports working"
 else
     check_fail "Import errors detected"
