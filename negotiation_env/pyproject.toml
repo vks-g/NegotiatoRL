@@ -2,7 +2,6 @@
 name = "negotiation-env"
 version = "1.0.0"
 description = "A Multi-Issue Bilateral Negotiation RL Environment for LLM Post-Training"
-readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
@@ -44,6 +43,17 @@ test = "negotiation_env.cli:run_tests"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# Hatch configuration - tell it that the current directory IS the package
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "*.py",
+    "server/**/*.py",
+    "openenv.yaml",
+]
 
 # PEP 735 dependency groups (modern uv syntax)
 [dependency-groups]

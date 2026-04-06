@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 # Copy only pyproject.toml for dependency caching
-COPY pyproject.toml /app/pyproject.toml
+COPY negotiation_env/pyproject.toml /app/pyproject.toml
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
