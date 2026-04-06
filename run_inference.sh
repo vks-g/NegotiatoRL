@@ -87,5 +87,5 @@ echo ""
 echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Run inference.py using uv from the negotiation_env package
-exec uv run --directory negotiation_env python3 "$REPO_ROOT/inference.py"
+# Run inference.py using uv
+exec uv run python3 inference.py

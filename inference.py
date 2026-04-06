@@ -41,27 +41,8 @@ STDOUT FORMAT
 
 import asyncio
 import os
-import sys
 import textwrap
 from typing import Dict, List, Optional, Any
-
-# ---------------------------------------------------------------------------
-# PATH FIX: Add the outer negotiation_env/ directory to sys.path so that the
-# inner negotiation_env Python package (negotiation_env/negotiation_env/) is
-# importable as `import negotiation_env`.
-#
-# Directory structure:
-#   repo_root/                          ← inference.py lives here
-#   repo_root/negotiation_env/          ← outer folder (no __init__.py)
-#   repo_root/negotiation_env/negotiation_env/   ← Python package (__init__.py here)
-#
-# By inserting repo_root/negotiation_env into sys.path[0], Python resolves
-# `import negotiation_env` to repo_root/negotiation_env/negotiation_env/.
-# ---------------------------------------------------------------------------
-_REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
-_PKG_DIR = os.path.join(_REPO_ROOT, "negotiation_env")
-if _PKG_DIR not in sys.path:
-    sys.path.insert(0, _PKG_DIR)
 
 from openai import OpenAI
 
@@ -168,9 +149,7 @@ def log_start(task: str, env: str, model: str) -> None:
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
 
-def log_step(
-    step: int, action: str, reward: float, done: bool, error: Optional[str]
-) -> None:
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
     """Log each step."""
     error_val = error if error else "null"
     done_val = str(done).lower()
@@ -379,9 +358,7 @@ async def run_task(
             rewards.append(reward)
             steps_taken = step
 
-            log_step(
-                step=step, action=action_str, reward=reward, done=done, error=error
-            )
+            log_step(step=step, action=action_str, reward=reward, done=done, error=error)
 
             # Update history
             history.append(f"Step {step}: {action_str} -> reward {reward:+.2f}")

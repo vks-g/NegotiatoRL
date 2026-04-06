@@ -4,28 +4,6 @@
 
 All scripts are located at the repo root and are ready to use:
 
-### 0. Check Environment (RECOMMENDED FIRST STEP)
-
-```bash
-# Check local environment only
-./check_env.sh
-
-# Check local environment + local server
-./check_env.sh http://localhost:8000
-
-# Check local environment + HuggingFace Space
-./check_env.sh https://your-space.hf.space
-```
-
-**What it validates:**
-- Docker installed and daemon running
-- Required files exist (Dockerfile, openenv.yaml, inference.py, .env)
-- Docker build succeeds
-- openenv validate passes (or warns about known issues)
-- HuggingFace Space is live and responds to /reset (if URL provided)
-
-This script matches the requirements from `Information/pre-validation.py` and helps catch issues before submission.
-
 ### 1. Run Inference (Baseline Evaluation)
 
 ```bash
@@ -103,7 +81,7 @@ IMAGE_NAME=negotiation-env:latest
 
 ```bash
 docker build -t negotiation-env:latest \
-  -f negotiation_env/negotiation_env/server/Dockerfile .
+  -f negotiation_env/server/Dockerfile .
 ```
 
 ### Run Container
@@ -173,7 +151,7 @@ cd /path/to/NegotiatoRL
 **Solution:** Build from repo root with correct Dockerfile path
 ```bash
 docker build -t negotiation-env:latest \
-  -f negotiation_env/negotiation_env/server/Dockerfile .
+  -f negotiation_env/server/Dockerfile .
 ```
 
 ---
@@ -198,24 +176,24 @@ docker build -t negotiation-env:latest \
 NegotiatoRL/
 ├── inference.py              ← Main entry point (repo root)
 ├── .env                      ← Environment config
+├── pyproject.toml            ← Dependencies
+├── openenv.yaml              ← OpenEnv spec
 ├── run_inference.sh          ← Run inference helper
 ├── run_tests.sh              ← Run tests helper
 ├── run_server.sh             ← Run server helper
 ├── validate.sh               ← Pre-submission validator
 ├── README.md                 ← Documentation
-└── negotiation_env/          ← Package directory
-    ├── openenv.yaml          ← OpenEnv spec
-    ├── pyproject.toml        ← Dependencies
-    └── negotiation_env/      ← Python package
-        ├── graders.py        ← Grader functions
-        ├── models.py         ← Data models
-        ├── rewards.py        ← Reward functions
-        ├── strategies.py     ← Opponent strategies
-        ├── test_env.py       ← Test suite
-        └── server/
-            ├── Dockerfile    ← Container config
-            ├── app.py        ← FastAPI app
-            └── environment.py ← Core environment
+└── negotiation_env/          ← Python package
+    ├── __init__.py
+    ├── graders.py            ← Grader functions
+    ├── models.py             ← Data models
+    ├── rewards.py            ← Reward functions
+    ├── strategies.py         ← Opponent strategies
+    ├── test_env.py           ← Test suite
+    └── server/
+        ├── Dockerfile        ← Container config
+        ├── app.py            ← FastAPI app
+        └── environment.py    ← Core environment
 ```
 
 ---
@@ -231,7 +209,7 @@ NegotiatoRL/
 ./validate.sh
 
 # Build and test Docker
-docker build -t negotiation-env:latest -f negotiation_env/negotiation_env/server/Dockerfile .
+docker build -t negotiation-env:latest -f negotiation_env/server/Dockerfile .
 docker run -d -p 8000:8000 negotiation-env:latest
 curl http://localhost:8000/health
 ```

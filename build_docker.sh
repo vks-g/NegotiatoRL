@@ -24,7 +24,7 @@ echo ""
 echo -e "${YELLOW}[1/4]${NC} Building Docker image: ${IMAGE_NAME}"
 echo ""
 
-if docker build -t "$IMAGE_NAME" -f negotiation_env/negotiation_env/server/Dockerfile .; then
+if docker build -t "$IMAGE_NAME" -f negotiation_env/server/Dockerfile .; then
     echo -e "${GREEN}✓${NC} Docker build successful"
 else
     echo -e "${RED}✗${NC} Docker build failed"

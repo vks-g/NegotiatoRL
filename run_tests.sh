@@ -6,7 +6,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$REPO_ROOT/negotiation_env"
+cd "$REPO_ROOT"
 
 # Colors for output
 GREEN='\033[0;32m'
