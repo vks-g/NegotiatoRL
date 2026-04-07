@@ -657,7 +657,15 @@ async def run_task(
 
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
 
-    env = await NegotiationEnv.from_docker_image(IMAGE_NAME)
+    # Connect to environment: use Docker locally, or direct connection in HF Spaces
+    if IMAGE_NAME:
+        env = await NegotiationEnv.from_docker_image(IMAGE_NAME)
+    else:
+        # HF Spaces: server is already running, connect directly
+        SERVER_URL = os.getenv("SPACE_HOST", "http://0.0.0.0:8000")
+        if not SERVER_URL.startswith("http"):
+            SERVER_URL = f"http://{SERVER_URL}"
+        env = NegotiationEnv(base_url=SERVER_URL)
 
     try:
         # Reset environment with task-specific parameters
