@@ -659,7 +659,11 @@ async def run_task(
 
     # Connect to environment: use Docker locally, or direct connection in HF Spaces
     if IMAGE_NAME:
-        env = await NegotiationEnv.from_docker_image(IMAGE_NAME)
+        try:
+            env = await NegotiationEnv.from_docker_image(IMAGE_NAME)
+        except Exception as e:
+            print(f"[DEBUG] Docker unavailable ({e}), falling back to localhost:8000", flush=True)
+            env = NegotiationEnv(base_url="http://localhost:8000")
     else:
         # HF Spaces: server is already running on localhost:8000
         env = NegotiationEnv(base_url="http://localhost:8000")
