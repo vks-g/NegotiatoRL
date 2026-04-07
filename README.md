@@ -88,9 +88,6 @@ openenv validate
 
 # Or without activating venv
 uv run openenv validate
-
-# Run comprehensive pre-submission checks
-./validate.sh
 ```
 
 ### 5. Run Inference
@@ -123,10 +120,7 @@ Both methods automatically load environment variables from `.env` file.
 ### 6. Run Tests
 
 ```bash
-# Using helper script
-./run_tests.sh
-
-# Or directly with pytest
+# Run tests with pytest
 uv run pytest test_env.py -v
 
 # After activating venv
@@ -159,14 +153,8 @@ NegotiationRL/
 │   ├── app.py                # FastAPI application + main()
 │   └── environment.py        # Core negotiation game logic
 ├── run_inference.sh          # Helper: Run inference with .env loading
-├── run_tests.sh              # Helper: Run test suite
 ├── run_server.sh             # Helper: Start development server
 ├── build_docker.sh           # Helper: Build Docker image
-├── validate.sh               # Helper: Pre-submission validation
-├── information/              # OpenEnv educational materials
-│   ├── README1-5.md          # OpenEnv philosophy & patterns
-│   ├── sample_inference.py   # Inference template
-│   └── *.png                 # Task requirements & criteria
 └── README.md                 # This file
 ```
 
@@ -373,9 +361,6 @@ server
 
 ```bash
 # Run all tests (25 tests)
-./run_tests.sh
-
-# Or with pytest
 uv run pytest test_env.py -v
 
 # Test specific scenarios
@@ -528,10 +513,8 @@ All scripts are located at the repo root:
 | Script | Description |
 |--------|-------------|
 | `run_inference.sh` | Run inference (all tasks or specific task) |
-| `run_tests.sh` | Run test suite (25 tests) |
 | `run_server.sh` | Start local development server |
 | `build_docker.sh` | Build Docker image with validation |
-| `validate.sh` | Pre-submission validation (22 checks) |
 
 **Usage:**
 ```bash
@@ -541,17 +524,11 @@ All scripts are located at the repo root:
 # Run specific task
 ./run_inference.sh easy_conceder
 
-# Run tests
-./run_tests.sh
-
 # Start server
 ./run_server.sh
 
 # Build Docker
 ./build_docker.sh
-
-# Validate before submission
-./validate.sh
 ```
 
 ---
@@ -626,8 +603,7 @@ Before submitting to the hackathon, ensure:
 - [ ] `uv sync` completes successfully
 - [ ] `.env` file configured with real HF_TOKEN
 - [ ] `openenv validate` passes: `[OK] Ready for multi-mode deployment`
-- [ ] All 25 tests pass: `./run_tests.sh`
-- [ ] All 22 validation checks pass: `./validate.sh`
+- [ ] All 25 tests pass: `uv run pytest test_env.py -v`
 - [ ] Docker builds successfully: `docker build -t negotiation-env:latest .`
 - [ ] Docker container runs: `docker run -d -p 8000:8000 negotiation-env:latest`
 - [ ] Health endpoint responds: `curl http://localhost:8000/health`
@@ -638,7 +614,7 @@ Before submitting to the hackathon, ensure:
 
 **Quick validation:**
 ```bash
-./validate.sh && echo "✅ Ready for submission!"
+openenv validate && echo "✅ Ready for submission!"
 ```
 
 ---
@@ -682,10 +658,9 @@ MIT License — See LICENSE file for full text.
 
 **Questions or issues?**
 
-1. Check `information/` folder for OpenEnv concepts
-2. Review this README for setup instructions
-3. Run `./validate.sh` to check your environment
-4. Run `pytest test_env.py -v` to verify installation
-5. Check server logs: `uv run server` shows request traces
+1. Review this README for setup instructions
+2. Run `openenv validate` to check your environment
+3. Run `pytest test_env.py -v` to verify installation
+4. Check server logs: `uv run server` shows request traces
 
 Built with ❤️ for the Meta PyTorch OpenEnv Hackathon.
