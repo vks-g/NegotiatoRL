@@ -12,6 +12,8 @@ app_port: 8000
 
 A production-grade **multi-issue bilateral negotiation RL environment** for training LLMs on complex negotiation tasks. Built on the [OpenEnv](https://github.com/meta-pytorch/openenv) framework for OpenAI Gym-like simplicity with Docker-based isolation, WebSocket APIs, and native TRL/GRPO integration.
 
+🚀 **[Live Demo on Hugging Face Spaces](https://vks-g-negotiatorl.hf.space)**
+
 ---
 
 ## 🚀 Quick Start
@@ -399,17 +401,26 @@ ruff format .
 
 ### Deploy to Hugging Face Spaces
 
-The fastest path from local code to a live endpoint:
+This environment is **already deployed** and live at:
+
+🚀 **[https://vks-g-negotiatorl.hf.space](https://vks-g-negotiatorl.hf.space)**
+
+**Available endpoints:**
+- **API Endpoint**: `https://vks-g-negotiatorl.hf.space`
+- **API Docs**: `https://vks-g-negotiatorl.hf.space/docs`
+- **Health Check**: `https://vks-g-negotiatorl.hf.space/health`
+
+**To deploy your own instance:**
 
 ```bash
 # Push to HF Spaces (requires HF write access)
-openenv push --repo-id your-username/negotiation-env
+openenv push --repo-id vks-g/negotiation-env
 ```
 
 Your environment will be available at:
-- **API Endpoint**: `https://your-username-negotiation-env.hf.space`
-- **API Docs**: `https://your-username-negotiation-env.hf.space/docs`
-- **Health Check**: `https://your-username-negotiation-env.hf.space/health`
+- **API Endpoint**: `https://vks-g-negotiation-env.hf.space`
+- **API Docs**: `https://vks-g-negotiation-env.hf.space/docs`
+- **Health Check**: `https://vks-g-negotiation-env.hf.space/health`
 
 Configure via Space Settings → Variables:
 - `MODEL_NAME` = your LLM identifier
@@ -421,8 +432,13 @@ Configure via Space Settings → Variables:
 Once deployed to HF Spaces, you can pull the image:
 
 ```bash
-docker pull registry.hf.space/your-username/negotiation-env:latest
-docker run -d -p 8000:8000 registry.hf.space/your-username/negotiation-env:latest
+# Pull the live deployed image
+docker pull registry.hf.space/vks-g-negotiatorl:latest
+docker run -d -p 8000:8000 registry.hf.space/vks-g-negotiatorl:latest
+
+# Or pull your own deployment
+docker pull registry.hf.space/vks-g/negotiation-env:latest
+docker run -d -p 8000:8000 registry.hf.space/vks-g/negotiation-env:latest
 ```
 
 ---
@@ -439,7 +455,7 @@ from models import NegotiationAction
 # Custom rollout function
 def rollout_func(trainer, prompts):
     """Run negotiation episodes and collect trajectories."""
-    with NegotiationEnv(base_url="https://your-env.hf.space").sync() as env:
+    with NegotiationEnv(base_url="https://vks-g-negotiatorl.hf.space").sync() as env:
         results = []
 
         for i, prompt in enumerate(prompts):
