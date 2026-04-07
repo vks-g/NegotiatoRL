@@ -209,22 +209,38 @@ def format_observation(obs: Any, offer_history: List[Dict[str, Any]]) -> str:
     # Build history analysis
     history_lines = []
     if offer_history:
-        agent_utils = [h["agent_utility"] for h in offer_history if h.get("agent_utility") is not None]
-        cp_utils = [h["cp_utility_of_agent_offer"] for h in offer_history if h.get("cp_utility_of_agent_offer") is not None]
+        agent_utils = [
+            h["agent_utility"] for h in offer_history if h.get("agent_utility") is not None
+        ]
+        cp_utils = [
+            h["cp_utility_of_agent_offer"]
+            for h in offer_history
+            if h.get("cp_utility_of_agent_offer") is not None
+        ]
 
         if len(agent_utils) >= 2:
             trend = agent_utils[-1] - agent_utils[-2]
-            history_lines.append(f"  Your utility trend: {agent_utils[-2]:.3f} -> {agent_utils[-1]:.3f} ({'improving' if trend > 0 else 'declining'})")
+            history_lines.append(
+                f"  Your utility trend: {agent_utils[-2]:.3f} -> {agent_utils[-1]:.3f} ({'improving' if trend > 0 else 'declining'})"
+            )
         if agent_utils:
             history_lines.append(f"  Your best utility so far: {max(agent_utils):.3f}")
 
         # Show counterpart concession pattern
-        cp_offer_utils = [h.get("cp_offer_utility_for_agent") for h in offer_history if h.get("cp_offer_utility_for_agent") is not None]
+        cp_offer_utils = [
+            h.get("cp_offer_utility_for_agent")
+            for h in offer_history
+            if h.get("cp_offer_utility_for_agent") is not None
+        ]
         if len(cp_offer_utils) >= 2:
             cp_trend = cp_offer_utils[-1] - cp_offer_utils[0]
-            history_lines.append(f"  Counterpart's offers to you: {' -> '.join(f'{u:.3f}' for u in cp_offer_utils)} (total movement: {cp_trend:+.3f})")
+            history_lines.append(
+                f"  Counterpart's offers to you: {' -> '.join(f'{u:.3f}' for u in cp_offer_utils)} (total movement: {cp_trend:+.3f})"
+            )
             if abs(cp_trend) < 0.02 * len(cp_offer_utils):
-                history_lines.append("  ** Counterpart is STUBBORN — concede only on low-weight issues **")
+                history_lines.append(
+                    "  ** Counterpart is STUBBORN — concede only on low-weight issues **"
+                )
             elif cp_trend > 0.05 * len(cp_offer_utils):
                 history_lines.append("  ** Counterpart is CONCEDING — match their pace **")
 
@@ -236,8 +252,14 @@ def format_observation(obs: Any, offer_history: List[Dict[str, Any]]) -> str:
             return "None"
         return ", ".join(f"{k}={v:.2f}" for k, v in offer.items())
 
-    accept_util_str = f"{obs.agent_utility_if_accept:.3f}" if obs.agent_utility_if_accept is not None else "N/A"
-    own_util_str = f"{obs.agent_utility_of_last_offer:.3f}" if obs.agent_utility_of_last_offer is not None else "N/A"
+    accept_util_str = (
+        f"{obs.agent_utility_if_accept:.3f}" if obs.agent_utility_if_accept is not None else "N/A"
+    )
+    own_util_str = (
+        f"{obs.agent_utility_of_last_offer:.3f}"
+        if obs.agent_utility_of_last_offer is not None
+        else "N/A"
+    )
 
     # Build the guidance on accept
     accept_guidance = ""
@@ -279,10 +301,18 @@ def format_observation(obs: Any, offer_history: List[Dict[str, Any]]) -> str:
                 target = last_val - step_size if buyer_prefers_low else last_val + step_size
             target = max(0.0, min(1.0, target))
 
-            label = "LOW-COST" if w / max_w < 0.3 else ("MEDIUM" if w / max_w < 0.6 else "HIGH-VALUE")
-            concession_lines.append(f"  {issue} (w={w:.2f}, {label}): {last_val:.2f} -> {target:.2f}")
+            label = (
+                "LOW-COST" if w / max_w < 0.3 else ("MEDIUM" if w / max_w < 0.6 else "HIGH-VALUE")
+            )
+            concession_lines.append(
+                f"  {issue} (w={w:.2f}, {label}): {last_val:.2f} -> {target:.2f}"
+            )
 
-    concession_block = "\n".join(concession_lines) if concession_lines else "  Make your opening offer at your ideal values."
+    concession_block = (
+        "\n".join(concession_lines)
+        if concession_lines
+        else "  Make your opening offer at your ideal values."
+    )
 
     obs_text = textwrap.dedent(
         f"""
@@ -308,14 +338,21 @@ def format_observation(obs: Any, offer_history: List[Dict[str, Any]]) -> str:
     return obs_text
 
 
-def parse_llm_response(response_text: str) -> Optional[NegotiationAction]:
-    """Parse LLM response into a NegotiationAction."""
+def parse_llm_response(response_text: str) -> NegotiationAction:
+    """Parse LLM response into a NegotiationAction.
+
+    Handles three response formats:
+    1. Raw JSON:          {"action_type": "offer", "offer": {...}}
+    2. Markdown blocks:   ```json ... ```
+    3. Reasoning models:  <thinking text> ... {"action_type": ...}
+                          (Nemotron, DeepSeek-R1, etc. that prepend reasoning)
+    """
     import json
     import re
 
     text = response_text.strip()
 
-    # Handle markdown code blocks
+    # Step 1 — strip markdown code blocks if present
     if "```json" in text:
         match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
         if match:
@@ -325,29 +362,51 @@ def parse_llm_response(response_text: str) -> Optional[NegotiationAction]:
         if match:
             text = match.group(1).strip()
 
-    # Try direct parse first
-    data = None
+    # Step 2 — try direct JSON parse
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        # Find the last complete JSON object in the text (models often reason then output JSON)
-        # Search for all JSON-like blocks and try parsing each
-        json_candidates = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text)
-        for candidate in reversed(json_candidates):
-            try:
-                parsed = json.loads(candidate)
-                if "action_type" in parsed or "offer" in parsed:
-                    data = parsed
-                    break
-            except json.JSONDecodeError:
-                continue
+        # Step 3 — reasoning model fallback:
+        # scan the full original response for any JSON object containing "action_type"
+        data = None
+        original = response_text.strip()
 
-    if data is None:
-        # Last resort: try to find accept/reject keywords in text
-        lower = text.lower()
-        if '"accept"' in lower or "'accept'" in lower:
-            return NegotiationAction(action_type="accept")
-        return None
+        # Walk the string tracking brace depth to find all {...} blocks
+        depth = 0
+        start = -1
+        candidates = []
+        for i, char in enumerate(original):
+            if char == "{":
+                if depth == 0:
+                    start = i
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0 and start != -1:
+                    chunk = original[start : i + 1]
+                    try:
+                        parsed = json.loads(chunk)
+                        if "action_type" in parsed:
+                            candidates.append(parsed)
+                    except json.JSONDecodeError:
+                        pass
+                    start = -1
+
+        if candidates:
+            # Use the last valid JSON found — after any reasoning preamble
+            data = candidates[-1]
+        else:
+            # Total fallback: hardcoded default offer
+            return NegotiationAction(
+                action_type="offer",
+                offer={
+                    "price": 0.4,
+                    "quantity": 0.6,
+                    "delivery_days": 0.4,
+                    "warranty_months": 0.6,
+                    "payment_terms": 0.5,
+                },
+            )
 
     action_type = data.get("action_type", "offer")
 
@@ -404,11 +463,11 @@ def enforce_monotonic_concession(
 
     # Conceding = moving TOWARD counterpart's preference
     buyer_concession_direction = {
-        "price": 1,        # buyer concedes by raising price
-        "quantity": -1,     # buyer concedes by lowering quantity
-        "delivery_days": 1, # buyer concedes by accepting slower delivery
+        "price": 1,  # buyer concedes by raising price
+        "quantity": -1,  # buyer concedes by lowering quantity
+        "delivery_days": 1,  # buyer concedes by accepting slower delivery
         "warranty_months": -1,  # buyer concedes by accepting less warranty
-        "payment_terms": -1,    # buyer concedes by accepting earlier payment
+        "payment_terms": -1,  # buyer concedes by accepting earlier payment
     }
 
     fixed = dict(new_offer)
@@ -522,8 +581,11 @@ def get_model_action(
         action = NegotiationAction(
             action_type="offer",
             offer=enforce_monotonic_concession(
-                action.offer, obs.agent_last_offer, obs.agent_role,
-                weights=obs.agent_weights, ensure_progress=True,
+                action.offer,
+                obs.agent_last_offer,
+                obs.agent_role,
+                weights=obs.agent_weights,
+                ensure_progress=True,
             ),
         )
 
