@@ -42,9 +42,11 @@ STDOUT FORMAT
 import asyncio
 import os
 import textwrap
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
+import httpx
 from openai import OpenAI
 
 from client import NegotiationEnv
@@ -64,7 +66,6 @@ except ImportError:
     pass
 
 # Environment configuration
-IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
@@ -78,7 +79,22 @@ MAX_TOKENS = 512
 # Task configurations — must match tasks defined in openenv.yaml
 # ---------------------------------------------------------------------------
 
+
 # All available tasks (used when running locally without NEGOTIATION_TASK set)
+async def _wait_for_server(base_url: str, retries: int = 20, delay: float = 2.0) -> None:
+    for attempt in range(1, retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                resp = await http.get(f"{base_url}/health")
+                if resp.status_code == 200:
+                    return
+        except Exception:
+            pass
+        if attempt < retries:
+            await asyncio.sleep(delay)
+    raise RuntimeError(f"Server at {base_url} not healthy after {retries * delay:.0f}s")
+
+
 ALL_TASKS = [
     {
         "name": "easy_conceder",
@@ -190,7 +206,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     """Log episode end."""
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}",
+        f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}",
         flush=True,
     )
 
@@ -657,16 +673,8 @@ async def run_task(
 
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
 
-    # Connect to environment: use Docker locally, or direct connection in HF Spaces
-    if IMAGE_NAME:
-        try:
-            env = await NegotiationEnv.from_docker_image(IMAGE_NAME)
-        except Exception as e:
-            print(f"[DEBUG] Docker unavailable ({e}), falling back to localhost:8000", flush=True)
-            env = NegotiationEnv(base_url="http://localhost:8000")
-    else:
-        # HF Spaces: server is already running on localhost:8000
-        env = NegotiationEnv(base_url="http://localhost:8000")
+    BASE_URL = os.getenv("NEGOTIATION_BASE_URL", "http://localhost:8000")
+    env = NegotiationEnv(base_url=BASE_URL)
 
     try:
         # Reset environment with task-specific parameters
@@ -713,16 +721,15 @@ async def run_task(
             if done:
                 break
 
-        # Final score is the terminal reward (last reward in list)
-        if rewards:
-            score = rewards[-1]
+        if rewards and max_rounds > 0:
+            terminal = rewards[-1] if rewards else 0.0
+            step_avg = sum(rewards[:-1]) / max(len(rewards) - 1, 1) if len(rewards) > 1 else 0.0
+            score = 0.7 * terminal + 0.3 * step_avg
         else:
             score = 0.0
 
-        # Clamp score to [0, 1]
         score = max(0.0, min(1.0, score))
 
-        # Success if we got a deal with reasonable utility
         success = score >= 0.5
 
     except Exception as e:
@@ -748,6 +755,9 @@ async def main() -> None:
 
     In multi-task mode (no env var): runs all 3 tasks sequentially for local testing.
     """
+    BASE_URL = os.getenv("NEGOTIATION_BASE_URL", "http://localhost:8000")
+    await _wait_for_server(BASE_URL)
+
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
     total_score = 0.0

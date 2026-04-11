@@ -41,7 +41,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
     "pydantic>=2.0.0" \
     "fastapi>=0.100.0" \
     "uvicorn[standard]>=0.23.0" \
-    "websockets>=11.0"
+    "websockets>=11.0" \
+    "httpx>=0.24.0" \
+    "openai>=2.30.0" \
+    "python-dotenv>=1.0.0"
 
 # ============================================================================
 # Production image - minimal footprint
@@ -63,8 +66,9 @@ RUN addgroup --gid 1001 --system appuser && \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin/uvicorn /usr/local/bin/uvicorn
 
-# Copy the Python files (flat structure at root)
-COPY --chown=appuser:appuser __init__.py client.py models.py graders.py rewards.py strategies.py /app/
+# Copy config and code files
+COPY --chown=appuser:appuser pyproject.toml openenv.yaml /app/
+COPY --chown=appuser:appuser __init__.py client.py models.py graders.py rewards.py strategies.py inference.py /app/
 COPY --chown=appuser:appuser server /app/server
 
 # Set environment variables
@@ -73,7 +77,7 @@ ENV PYTHONPATH="/app" \
     PYTHONUNBUFFERED=1 \
     HOST="0.0.0.0" \
     PORT="8000" \
-    WORKERS="4"
+    WORKERS="1"
 
 # Switch to non-root user
 USER appuser
@@ -86,4 +90,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Run the server
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
