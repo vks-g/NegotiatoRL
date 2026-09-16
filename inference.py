@@ -41,6 +41,7 @@ STDOUT FORMAT
 
 import asyncio
 import os
+import sys
 import textwrap
 import time
 from pathlib import Path
@@ -74,6 +75,14 @@ BENCHMARK = "negotiation_env"
 # MAX_STEPS removed — loop uses task_config["max_rounds"] per task (see ALL_TASKS)
 TEMPERATURE = 0.3
 MAX_TOKENS = 512
+
+# --- LLM call accounting -------------------------------------------------
+# get_model_action() falls back to a heuristic whenever a model request fails.
+# Without accounting, a run in which EVERY model call failed still prints
+# success=true with plausible scores -- the scores then measure the fallback,
+# not the model. These counters make that state impossible to miss.
+MODEL_STATS = {"calls": 0, "failures": 0}
+EPISODE_MODEL_STATS: List[tuple] = []
 
 # ---------------------------------------------------------------------------
 # Task configurations — must match tasks defined in openenv.yaml
@@ -559,6 +568,7 @@ def get_model_action(
     user_prompt = format_observation(obs, offer_history)
 
     try:
+        MODEL_STATS["calls"] += 1
         completion = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -572,9 +582,11 @@ def get_model_action(
         text = (completion.choices[0].message.content or "").strip()
         action = parse_llm_response(text)
         if action is None:
+            MODEL_STATS["failures"] += 1
             print(f"[DEBUG] Failed to parse LLM response: {text[:100]}", flush=True)
             action = _make_concession_offer(obs)
     except Exception as exc:
+        MODEL_STATS["failures"] += 1
         print(f"[DEBUG] Model request failed: {exc}", flush=True)
         action = _make_concession_offer(obs)
 
@@ -670,6 +682,8 @@ async def run_task(
     steps_taken = 0
     score = 0.0
     success = False
+    calls_before = MODEL_STATS["calls"]
+    failures_before = MODEL_STATS["failures"]
 
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
 
@@ -743,6 +757,26 @@ async def run_task(
             print(f"[DEBUG] env.close() error (container cleanup): {e}", flush=True)
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
+        # Diagnostics go to stderr so the mandated stdout contract
+        # ([START]/[STEP]/[END] only) is left byte-for-byte unchanged.
+        ep_calls = MODEL_STATS["calls"] - calls_before
+        ep_failures = MODEL_STATS["failures"] - failures_before
+        EPISODE_MODEL_STATS.append((task_name, ep_calls, ep_failures))
+        print(
+            f"[DIAG] task={task_name} model_calls={ep_calls} "
+            f"model_failures={ep_failures} fallback_used={str(ep_failures > 0).lower()}",
+            file=sys.stderr,
+            flush=True,
+        )
+        if ep_calls and ep_failures == ep_calls:
+            print(
+                f"[DIAG] WARNING task={task_name}: every model call failed -- "
+                f"score {score:.2f} reflects the heuristic fallback, "
+                f"not {MODEL_NAME}.",
+                file=sys.stderr,
+                flush=True,
+            )
+
     return score
 
 
@@ -789,6 +823,28 @@ async def main() -> None:
         print(f"Total tasks: {len(TASKS)}", flush=True)
         print(f"Total score: {total_score:.2f}", flush=True)
         print(f"Average score: {average_score:.2f}", flush=True)
+
+    print(
+        f"[DIAG] run summary: model={MODEL_NAME} "
+        f"model_calls={MODEL_STATS['calls']} model_failures={MODEL_STATS['failures']}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+    # A task whose every model call failed produced heuristic-only scores.
+    # Fail loudly so such a run can never be mistaken for a model benchmark.
+    # Skipped in evaluator mode so the harness's exit code is untouched.
+    fully_failed = [name for (name, c, f) in EPISODE_MODEL_STATS if c and f == c]
+    if fully_failed and not single_task_mode:
+        print(
+            "[DIAG] FATAL: every model call failed for task(s): "
+            + ", ".join(fully_failed)
+            + ". Scores are heuristic-only and must not be reported as a "
+            "model benchmark.",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
