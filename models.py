@@ -8,6 +8,7 @@ IMPORTANT: Do NOT redefine 'done' or 'reward' in Observation (inherited from bas
 IMPORTANT: Do NOT redefine 'episode_id' or 'step_count' in State (inherited from base).
 """
 
+import json
 from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 from openenv.core.env_server import Action, Observation, State
@@ -109,6 +110,27 @@ class NegotiationAction(Action):
     message: Optional[str] = Field(
         None, max_length=500, description="Optional message with the action"
     )
+
+    @field_validator("offer", mode="before")
+    @classmethod
+    def parse_offer_text(cls, v):
+        """Accept the offer as JSON text as well as a dict.
+
+        The Space's auto-generated Playground sends every text field as a
+        string, so without this an offer typed there could never validate.
+        """
+        if isinstance(v, str):
+            text = v.strip()
+            if not text:
+                return None
+            example = '{"price": 0.6, "quantity": 0.5, "delivery_days": 0.4, "warranty_months": 0.5, "payment_terms": 0.5}'
+            try:
+                v = json.loads(text)
+            except json.JSONDecodeError:
+                raise ValueError(f"offer must be JSON with a 0-1 value per issue, e.g. {example}") from None
+            if not isinstance(v, dict):
+                raise ValueError(f"offer must be JSON with a 0-1 value per issue, e.g. {example}")
+        return v
 
     @field_validator("offer")
     @classmethod
